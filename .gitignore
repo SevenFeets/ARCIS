@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Model Files (pre-trained models)
+yolov8n.pt
+yolo11n.pt
+
+# Generated outputs
+test_results/
+output_*.mp4
+webcam_output_*.mp4
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Dataset files
+Weapon detection.v2i.yolov5pytorch/
+weapon_detection/
+
+# Mac files
+.DS_Store
+
+# Windows files
+Thumbs.db
+ehthumbs.db
+Desktop.ini 
