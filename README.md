@@ -2,13 +2,56 @@
 
 A YOLO-based deep learning model for detecting weapons in images and video streams. This project includes tools for training, testing, and deploying a weapon detection model on various platforms.
 
-## Features
+## Project Overview
+
+The ARCIS model is designed to detect weapons in real-time using computer vision and deep learning. The system employs YOLO (You Only Look Once) object detection models to identify potential threats and provide instant alerts. Our solution uses color-coded bounding boxes to indicate threat levels - green for low confidence detections, yellow for medium confidence, and red for high confidence detections.
+
+### Hardware Components
+- Raspberry Pi 4 and 5 for edge computing
+- NVIDIA Jetson Nano for accelerated inference
+- Camera modules with IMX415 wide-angle fixed focus sensors
+- Compatible with various deployment scenarios
+
+### Core Features
 
 - Train a custom YOLOv8 model on weapon detection datasets
 - Test the model on static images and video
 - Run real-time inference on webcams
 - Deploy to Garmin VIRB 360 camera
 - Easy transfer to other laptops/devices
+- Color-coded bounding boxes based on threat confidence:
+  - Green: < 10% confidence
+  - Yellow: 10-75% confidence 
+  - Red: > 75% confidence
+- Audio alerts for high-confidence detections
+
+## Future Development Plans
+
+### Database Infrastructure
+- **Redis**: In-memory caching for high-speed data access
+- **MongoDB**: Unstructured database for storing detection logs and events
+- **PostgreSQL**: Relational database for the monitoring website
+
+### Cloud Integration
+- **Google Cloud Vision**: Secondary analysis of uncertain detections (yellow level frames)
+- **Claude AI API**: Advanced reanalysis of ambiguous frames for improved accuracy
+
+### Containerization & Orchestration
+- **Docker**: Containerization of the application for consistent deployment
+- **Kubernetes**: Orchestration of multiple hardware nodes for coordinated detection
+- Real-time notification system between connected devices
+
+### Advanced Features
+- Danger relative positioning to camera viewpoint
+- Approximate distance calculation to detected threats
+- Multi-device coordination for enhanced coverage
+
+### Web Interface
+- Responsive monitoring website
+- Real-time detection visualization
+- System metrics and performance analytics
+- Comprehensive logging and reporting
+- Remote configuration and management
 
 ## Project Structure
 
@@ -20,6 +63,7 @@ A YOLO-based deep learning model for detecting weapons in images and video strea
 - `setup_dataset.py` - Script to set up dataset structure
 - `GARMIN_DEPLOYMENT_GUIDE.md` - Guide for Garmin camera deployment
 - `transfer_instructions.md` - Guide for transferring model to other laptops
+- `sample_images/` - Example detection images with bounding boxes
 
 ## Getting Started
 
