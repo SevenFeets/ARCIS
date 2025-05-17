@@ -21,6 +21,7 @@ import {
 import { FaGithub, FaGoogle } from 'react-icons/fa'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
 interface LoginModalProps {
     isOpen: boolean
@@ -33,6 +34,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     const [isLoading, setIsLoading] = useState(false);
     const { login, loginWithGoogle } = useAuth();
     const toast = useToast();
+    const navigate = useNavigate();
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -57,6 +59,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 isClosable: true,
             });
             onClose();
+            navigate('/profile');
         } catch (error) {
             toast({
                 title: "Error",
@@ -82,6 +85,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 isClosable: true,
             });
             onClose();
+            navigate('/profile');
         } catch (error) {
             toast({
                 title: "Error",

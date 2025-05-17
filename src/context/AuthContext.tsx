@@ -6,7 +6,11 @@ import {
     signOut,
     onAuthStateChanged,
     GoogleAuthProvider,
-    signInWithPopup
+    signInWithPopup,
+    updateEmail,
+    updatePassword,
+    deleteUser,
+    sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth } from '../firebase/config';
 
@@ -17,6 +21,10 @@ interface AuthContextType {
     signup: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     loginWithGoogle: () => Promise<void>;
+    updateUserEmail: (newEmail: string) => Promise<void>;
+    updateUserPassword: (newPassword: string) => Promise<void>;
+    deleteAccount: () => Promise<void>;
+    resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -49,6 +57,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return signOut(auth);
     }
 
+    function updateUserEmail(newEmail: string) {
+        if (!currentUser) throw new Error("No user logged in");
+        return updateEmail(currentUser, newEmail);
+    }
+
+    function updateUserPassword(newPassword: string) {
+        if (!currentUser) throw new Error("No user logged in");
+        return updatePassword(currentUser, newPassword);
+    }
+
+    function deleteAccount() {
+        if (!currentUser) throw new Error("No user logged in");
+        return deleteUser(currentUser);
+    }
+
+    function resetPassword(email: string) {
+        return sendPasswordResetEmail(auth, email);
+    }
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setCurrentUser(user);
@@ -64,7 +91,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         signup,
         logout,
-        loginWithGoogle
+        loginWithGoogle,
+        updateUserEmail,
+        updateUserPassword,
+        deleteAccount,
+        resetPassword
     };
 
     return (

@@ -6,6 +6,8 @@ import HomePage from './pages/HomePage'
 import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import RegisterPage from './pages/RegisterPage'
+import PrivateRoute from './components/ui/privateRoute'
+import ProfilePage from './pages/ProfilePage'
 
 function App() {
   return (
@@ -21,6 +23,10 @@ function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<HomePage />} />
+          <Route element={<PrivateRoute />}>
+            <Route path="/profile" element={<ProfilePage />} />
+          </Route>
         </Routes>
       </Box>
       <Footer />

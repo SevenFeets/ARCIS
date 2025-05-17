@@ -15,8 +15,7 @@ import {
     TabList,
     TabPanel,
     TabPanels,
-    Tabs,
-    Image
+    Tabs
 } from '@chakra-ui/react'
 import { FormControl, FormLabel } from '@chakra-ui/form-control'
 import { Input } from '@chakra-ui/input'
