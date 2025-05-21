@@ -12,7 +12,8 @@ import {
     MenuButton,
     MenuList,
     MenuItem,
-    Avatar
+    Avatar,
+    useToast
 } from '@chakra-ui/react'
 import { Link as RouterLink } from 'react-router-dom'
 import { FiMoon, FiSun, FiUser, FiLogOut } from 'react-icons/fi'
@@ -29,12 +30,29 @@ const Navbar = () => {
     } = useDisclosure()
     const btnRef = useRef<HTMLButtonElement>(null)
     const { currentUser, logout } = useAuth()
+    const toast = useToast()
 
     const handleLogout = async () => {
         try {
             await logout();
+            toast({
+                title: "Success",
+                description: "Successfully logged out",
+                status: "success",
+                position: "top",
+                duration: 3000,
+                isClosable: true,
+            });
         } catch (error) {
             console.error("Failed to log out", error);
+            toast({
+                title: "Error",
+                description: "Failed to log out",
+                status: "error",
+                position: "top",
+                duration: 3000,
+                isClosable: true,
+            });
         }
     }
 
