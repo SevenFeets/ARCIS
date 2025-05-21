@@ -173,6 +173,9 @@ const Navbar = () => {
                             <MenuList>
                                 <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
                                 <MenuItem onClick={handleLogout} icon={<FiLogOut />}>Logout</MenuItem>
+                                {currentUser && (
+                                    <MenuItem as={RouterLink} to="/auth-test">Auth Tester</MenuItem>
+                                )}
                             </MenuList>
                         </Menu>
                     ) : (

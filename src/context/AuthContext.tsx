@@ -54,7 +54,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     function logout() {
-        return signOut(auth);
+        return signOut(auth).then(() => {
+            setCurrentUser(null);
+        });
     }
 
     function updateUserEmail(newEmail: string) {
