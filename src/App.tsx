@@ -8,6 +8,7 @@ import ContactPage from './pages/ContactPage'
 import RegisterPage from './pages/RegisterPage'
 import PrivateRoute from './components/ui/privateRoute'
 import ProfilePage from './pages/ProfilePage'
+import AuthTester from './components/tests/AuthTester'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route element={<PrivateRoute />}>
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
+          <Route path="/auth-test" element={<AuthTester />} />
         </Routes>
       </Box>
       <Footer />

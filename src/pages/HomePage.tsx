@@ -19,6 +19,7 @@ import {
 } from '@chakra-ui/react'
 import { FormControl, FormLabel } from '@chakra-ui/form-control'
 import { Input } from '@chakra-ui/input'
+import { Link as RouterLink } from 'react-router-dom'
 
 const HomePage = () => {
     return (
@@ -93,6 +94,21 @@ const HomePage = () => {
                     <LoginArea />
                 </Container>
             </Box>
+
+            <Container maxW="container.xl" centerContent py={8}>
+                <Flex direction="column" align="center">
+                    <Heading size="md" mb={4}>Authentication Testing</Heading>
+                    <Button
+                        as={RouterLink}
+                        to="/auth-test"
+                        colorScheme="purple"
+                        size="lg"
+                        mb={8}
+                    >
+                        Run Authentication Tests
+                    </Button>
+                </Flex>
+            </Container>
         </Box>
     )
 }
