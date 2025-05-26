@@ -54,4 +54,4 @@ if (require.main === module) {
     debugDatabase();
 }
 
-module.exports = { debugDatabase }; 
+module.exports = { debugDatabase };
