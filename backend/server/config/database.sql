@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS behaviors (
 );
 
 -- CLASSIFICATION TABLES
-CREATE TABLE weapon_detections (
+CREATE TABLE IF NOT EXISTS weapon_detections (
   weapon_detection_id SERIAL PRIMARY KEY,
   detection_id INTEGER REFERENCES detections(detection_id),
   weapon_type VARCHAR(50) NOT NULL, -- pistol, rifle, machine_gun, RPG, etc.
@@ -133,7 +133,7 @@ CREATE TABLE weapon_detections (
   metadata JSONB
 );
 
-CREATE TABLE military_vehicle_detections (
+CREATE TABLE IF NOT EXISTS military_vehicle_detections (
   vehicle_detection_id SERIAL PRIMARY KEY,
   detection_id INTEGER REFERENCES detections(detection_id),
   vehicle_type VARCHAR(50) NOT NULL, -- tank, apc, btr, humvee, etc.
@@ -145,7 +145,7 @@ CREATE TABLE military_vehicle_detections (
   metadata JSONB
 );
 
-CREATE TABLE aircraft_detections (
+CREATE TABLE IF NOT EXISTS aircraft_detections (
   aircraft_detection_id SERIAL PRIMARY KEY,
   detection_id INTEGER REFERENCES detections(detection_id),
   aircraft_type VARCHAR(50) NOT NULL, -- fighter, bomber, helicopter, drone, etc.
@@ -157,7 +157,7 @@ CREATE TABLE aircraft_detections (
   metadata JSONB
 );
 
-CREATE TABLE environmental_hazard_detections (
+CREATE TABLE IF NOT EXISTS environmental_hazard_detections (
   hazard_detection_id SERIAL PRIMARY KEY,
   detection_id INTEGER REFERENCES detections(detection_id),
   hazard_type VARCHAR(50) NOT NULL, -- smoke, fire, explosion, gas, etc.
@@ -168,7 +168,7 @@ CREATE TABLE environmental_hazard_detections (
   metadata JSONB
 );
 
-CREATE TABLE behavior_detections (
+CREATE TABLE IF NOT EXISTS behavior_detections (
   behavior_detection_id SERIAL PRIMARY KEY,
   detection_id INTEGER REFERENCES detections(detection_id),
   behavior_type VARCHAR(50) NOT NULL, -- running, fighting, surrender, etc.
