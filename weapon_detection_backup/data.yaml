@@ -1,6 +1,0 @@
-names:
-  0: weapon
-path: D:\ARCIS model\weapon_detection
-test: test/images
-train: train/images
-val: val/images

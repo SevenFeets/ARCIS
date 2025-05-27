@@ -1,138 +1,258 @@
-# Weapon Detection Model
+# ARCIS - Advanced Reconnaissance and Combat Intelligence System
 
-A YOLO-based deep learning model for detecting weapons in images and video streams. This project includes tools for training, testing, and deploying a weapon detection model on various platforms.
+A comprehensive weapon detection system designed for military field operations, featuring standalone and distributed deployment options with advanced threat classification and tactical intelligence.
 
-## Project Overview
+## 🏗️ Project Structure
 
-The ARCIS model is designed to detect weapons in real-time using computer vision and deep learning. The system employs YOLO (You Only Look Once) object detection models to identify potential threats and provide instant alerts. Our solution uses color-coded bounding boxes to indicate threat levels - green for low confidence detections, yellow for medium confidence, and red for high confidence detections.
+```
+ARCIS_MODEL/
+├── 📁 Original_ARCIS_System/          # Standalone ARCIS system
+│   ├── train_weapon_detection.py      # Main tactical detection system
+│   ├── train_weapon_detection_gps.py  # GPS-enhanced version
+│   ├── webcam_inference.py            # Simple webcam detection
+│   └── requirements_gps.txt           # GPS dependencies
+│
+├── 📁 ARCIS_Redis_System/             # Distributed Redis-integrated system
+│   ├── train_weapon_detection_redis.py # Redis-integrated detection
+│   ├── arcis_redis_integration.py     # Redis manager and integration
+│   ├── arcis_cloud_service.py         # Google Cloud Vision service
+│   ├── arcis_api_service.py           # FastAPI for Raspberry Pi
+│   ├── raspberry_pi_client.py         # Field alert client
+│   ├── docker-compose.yml             # Multi-container deployment
+│   ├── Dockerfile.*                   # Container configurations
+│   └── DEPLOYMENT_GUIDE.md            # Complete deployment guide
+│
+├── 📁 Dataset_Tools/                  # Dataset management and merging
+│   ├── dataset_merger.py              # Main ARCIS dataset merger
+│   ├── merge_*.py                     # Legacy merge tools
+│   ├── balance_dataset.py             # Dataset balancing
+│   └── setup_dataset.py               # Dataset setup and validation
+│
+├── 📁 Documentation/                  # All documentation files
+│   ├── README.md                      # Main project documentation
+│   ├── README_Dataset_Merger.md       # Dataset merger guide
+│   ├── L76K_GPS_Setup_Guide.md        # GPS setup instructions
+│   ├── GITHUB_UPLOAD_GUIDE.md         # GitHub deployment guide
+│   └── transfer_instructions.md       # File transfer instructions
+│
+├── 📁 Models/                         # Pre-trained YOLO models
+│   ├── yolov8n.pt                     # YOLOv8 Nano (6.2MB)
+│   └── yolo11n.pt                     # YOLO11 Nano (5.4MB)
+│
+├── 📁 Audio_Assets/                   # Audio alert files
+│   └── danger_alert.mp3               # Primary threat alert sound
+│
+├── 📁 Utilities/                      # Testing and utility scripts
+│   ├── test_model.py                  # Model testing and evaluation
+│   ├── test_gpu.py                    # GPU functionality test
+│   ├── train_yolo.py                  # Basic YOLO training
+│   ├── default_train.py               # Default training config
+│   └── delete_duplicate_files.py      # File cleanup utility
+│
+├── 📁 ARCIS_Dataset_*/                # Generated datasets (3 splits)
+├── 📁 datasets/                       # Source datasets
+├── 📁 runs/                           # Training results
+├── 📁 sample_images/                  # Test images
+├── 📁 test_results/                   # Test outputs
+├── 📁 venv/                           # Python virtual environment
+├── requirements.txt                   # Basic Python dependencies
+└── .gitignore                         # Git ignore rules
+```
 
-### Hardware Components
-- Raspberry Pi 4 and 5 for edge computing
-- NVIDIA Jetson Nano for accelerated inference
-- Camera modules with IMX415 wide-angle fixed focus sensors
-- Compatible with various deployment scenarios
+## 🚀 Quick Start
 
-### Core Features
+### 1. Choose Your Deployment
 
-- Train a custom YOLOv8 model on weapon detection datasets
-- Test the model on static images and video
-- Run real-time inference on webcams
-- Deploy to Garmin VIRB 360 camera
-- Easy transfer to other laptops/devices
-- Color-coded bounding boxes based on threat confidence:
-  - Green: < 10% confidence
-  - Yellow: 10-75% confidence 
-  - Red: > 75% confidence
-- Audio alerts for high-confidence detections
+#### Standalone System (Recommended for single device)
+```bash
+cd Original_ARCIS_System
+python train_weapon_detection.py
+```
 
-## Future Development Plans
+#### Distributed System (For multi-device operations)
+```bash
+cd ARCIS_Redis_System
+docker-compose up -d
+```
 
-### Database Infrastructure
-- **Redis**: In-memory caching for high-speed data access
-- **MongoDB**: Unstructured database for storing detection logs and events
-- **PostgreSQL**: Relational database for the monitoring website
+#### GPS-Enhanced System (For location tracking)
+```bash
+cd Original_ARCIS_System
+pip install -r requirements_gps.txt
+python train_weapon_detection_gps.py
+```
 
-### Cloud Integration
-- **Google Cloud Vision**: Secondary analysis of uncertain detections (yellow level frames)
-- **Claude AI API**: Advanced reanalysis of ambiguous frames for improved accuracy
+### 2. Prepare Dataset (if needed)
+```bash
+cd Dataset_Tools
+python dataset_merger.py
+```
 
-### Containerization & Orchestration
-- **Docker**: Containerization of the application for consistent deployment
-- **Kubernetes**: Orchestration of multiple hardware nodes for coordinated detection
-- Real-time notification system between connected devices
+### 3. Test System
+```bash
+cd Utilities
+python test_gpu.py
+python test_model.py --model ../Models/yolov8n.pt
+```
 
-### Advanced Features
-- Danger relative positioning to camera viewpoint
-- Approximate distance calculation to detected threats
-- Multi-device coordination for enhanced coverage
+## 🎯 System Comparison
 
-### Web Interface
-- Responsive monitoring website
-- Real-time detection visualization
-- System metrics and performance analytics
-- Comprehensive logging and reporting
-- Remote configuration and management
+| Feature | Original ARCIS | GPS-Enhanced | Redis-Integrated |
+|---------|---------------|--------------|------------------|
+| **Deployment** | Single device | Single device | Multi-device |
+| **Threat Detection** | ✅ | ✅ | ✅ |
+| **Military Classification** | ✅ | ✅ | ✅ |
+| **Distance Estimation** | ✅ | ✅ | ✅ |
+| **Mission Logging** | ✅ | ✅ | ✅ |
+| **GPS Tracking** | ❌ | ✅ | ✅ |
+| **MGRS Coordinates** | ❌ | ✅ | ✅ |
+| **Cloud Processing** | ❌ | ❌ | ✅ |
+| **Raspberry Pi Alerts** | ❌ | ❌ | ✅ |
+| **Website Integration** | ❌ | ❌ | ✅ |
+| **Real-time Messaging** | ❌ | ❌ | ✅ |
+| **Docker Deployment** | ❌ | ❌ | ✅ |
 
-## Project Structure
+## 🔧 Key Features
 
-- `train_weapon_detection.py` - Script to train the YOLO model
-- `test_model.py` - Script to test model on static images
-- `webcam_inference.py` - Script for real-time inference on webcams
-- `garmin_inference.py` - Script for Garmin VIRB 360 camera integration
-- `merge_datasets.py` - Script to merge additional image datasets
-- `setup_dataset.py` - Script to set up dataset structure
-- `GARMIN_DEPLOYMENT_GUIDE.md` - Guide for Garmin camera deployment
-- `transfer_instructions.md` - Guide for transferring model to other laptops
-- `sample_images/` - Example detection images with bounding boxes
+### Military-Grade Threat Classification
+- **CRITICAL (RED)**: Immediate danger - tanks, aircraft, heavy weapons
+- **HIGH (ORANGE)**: Significant threat - guns, rifles, weapons  
+- **MEDIUM (YELLOW)**: Potential threat - handguns, knives
+- **LOW (GREEN)**: Minimal threat - other objects
 
-## Getting Started
+### Tactical Intelligence
+- **Distance Estimation**: IMX415 sensor-based ranging
+- **Bearing Calculation**: Directional threat assessment
+- **Engagement Recommendations**: ENGAGE, AVOID, TAKE_COVER
+- **Mission Logging**: JSON format with timestamps
+- **SITREP Generation**: Situation reports for command
 
-### Prerequisites
+### Hardware Optimization
+- **Jetson Nano**: Optimized for ARM architecture
+- **Display Support**: 2K square (1440x1440) and 1080p
+- **Memory Efficient**: Reduced batch sizes and inference resolution
+- **Real-time Performance**: 30+ FPS on Jetson Nano
 
-- Python 3.10+
-- CUDA-capable GPU (recommended)
-- OpenCV
-- PyTorch
-- Ultralytics YOLO
+## 📊 Dataset Information
 
-### Installation
+### ARCIS Merged Dataset
+- **Total Images**: 248,374
+- **Total Annotations**: 442,399  
+- **Classes**: 19 standardized threat categories
+- **Splits**: 80/10/10, 70/15/15, 75/12.5/12.5
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/YOUR-USERNAME/weapon-detection.git
-   cd weapon-detection
-   ```
+### Source Datasets
+- weapon_detection_balanced & unbalanced
+- gun_holding_person (with criminal behavior)
+- knife-detection, 70k_Guns, various_weapons_by_type
+- tanks, military_vehicles, aircraft
+- crime_personality dataset
 
-2. Create a virtual environment and install dependencies:
-   ```bash
-   python -m venv venv
-   # On Windows
-   venv\Scripts\activate
-   # On Linux/Mac
-   source venv/bin/activate
-   
-   pip install -r requirements.txt
-   ```
+## 🛠️ System Requirements
 
-### Usage
+### Hardware
+- **Jetson Nano** (4GB recommended) OR desktop/laptop
+- **IMX415 Camera** with 2.8mm lens (for distance estimation)
+- **Audio output** (for danger alerts)
+- **Display** (2K square or 1080p)
+- **Raspberry Pi** (optional, for distributed alerts)
 
-1. **Training a model**:
-   ```bash
-   python train_weapon_detection.py
-   ```
+### Software
+- **Python 3.8+**
+- **CUDA support** (for GPU acceleration)
+- **Docker & Docker Compose** (for Redis system)
+- **Redis** (for distributed system)
+- **Google Cloud Account** (optional, for cloud processing)
 
-2. **Testing on images**:
-   ```bash
-   python test_model.py --model runs/detect/train/weights/best.pt
-   ```
+## 📚 Documentation
 
-3. **Running on webcam**:
-   ```bash
-   python webcam_inference.py --model runs/detect/train/weights/best.pt
-   ```
+Each folder contains detailed README files:
 
-4. **Using with Garmin camera**:
-   ```bash
-   python garmin_inference.py --model runs/detect/train/weights/best.pt
-   ```
+- **`Original_ARCIS_System/README.md`** - Standalone system guide
+- **`ARCIS_Redis_System/README.md`** - Distributed system overview
+- **`ARCIS_Redis_System/DEPLOYMENT_GUIDE.md`** - Complete deployment instructions
+- **`Dataset_Tools/README.md`** - Dataset management guide
+- **`Documentation/`** - All setup guides and manuals
+- **`Models/README.md`** - Model specifications and usage
+- **`Audio_Assets/README.md`** - Audio alert configuration
+- **`Utilities/README.md`** - Testing and utility tools
 
-## Model Performance
+## 🔄 Development Workflow
 
-The trained model can detect weapons with high accuracy. Example performance metrics:
-- Precision: ~0.9
-- Recall: ~0.85
-- mAP@0.5: ~0.88
+### 1. Dataset Preparation
+```bash
+cd Dataset_Tools
+python dataset_merger.py  # Create ARCIS dataset
+```
 
-## Transfer to Other Devices
+### 2. Model Training
+```bash
+cd Original_ARCIS_System
+python train_weapon_detection.py  # Train on ARCIS dataset
+```
 
-See `transfer_instructions.md` for detailed steps on transferring the model to other laptops or devices.
+### 3. Testing and Validation
+```bash
+cd Utilities
+python test_model.py --model ../runs/detect/train/weights/best.pt
+```
 
-## License
+### 4. Deployment
+```bash
+# Standalone deployment
+cd Original_ARCIS_System
+python train_weapon_detection.py
 
-[Choose an appropriate license for your project]
+# Distributed deployment  
+cd ARCIS_Redis_System
+docker-compose up -d
+```
 
-## Acknowledgments
+## 🚨 Security and Safety
 
-- Ultralytics for YOLOv8
-- OpenCV for computer vision tools
-- [Add any other acknowledgments] 
+### Field Operation Safety
+- **Audio Alerts**: Immediate notification of critical threats
+- **Visual Indicators**: Color-coded threat level display
+- **Distance Warnings**: Real-time range estimation
+- **Engagement Guidance**: Tactical recommendations
+
+### Data Security
+- **Local Processing**: No data leaves device (standalone mode)
+- **Encrypted Communication**: HTTPS/WSS for distributed mode
+- **Access Control**: API authentication and authorization
+- **Audit Logging**: Comprehensive operation logs
+
+## 🤝 Support and Maintenance
+
+### Getting Help
+1. **Check Documentation**: Each folder has detailed README files
+2. **Review Logs**: Check system logs for error messages
+3. **Test Components**: Use utilities to verify system health
+4. **Validate Configuration**: Ensure proper setup
+
+### Regular Maintenance
+- **Update Models**: Retrain with new data periodically
+- **Clean Datasets**: Remove duplicates and invalid data
+- **Monitor Performance**: Check inference speed and accuracy
+- **Backup Configurations**: Save working configurations
+
+## 📈 Future Enhancements
+
+### Planned Features
+- **Multi-camera Support**: Simultaneous camera feeds
+- **Advanced Analytics**: Threat pattern analysis
+- **Mobile App Integration**: Remote monitoring and control
+- **Enhanced Cloud AI**: Improved threat classification
+- **Voice Commands**: Hands-free operation
+
+### Contributing
+- **Dataset Contributions**: Add new weapon/threat datasets
+- **Model Improvements**: Optimize detection accuracy
+- **Feature Requests**: Suggest new tactical features
+- **Bug Reports**: Report issues and improvements
+
+---
+
+**⚠️ IMPORTANT**: This system is designed for military and security applications. Ensure proper authorization and compliance with local laws and regulations before deployment.
+
+**📧 Contact**: For technical support or deployment assistance, refer to the documentation in each system folder. 

@@ -26,32 +26,120 @@ venv/
 env/
 ENV/
 
-# Model Files (pre-trained models)
-yolov8n.pt
-yolo11n.pt
+# ===========================================
+# ARCIS SYSTEM SPECIFIC IGNORES
+# ===========================================
 
-# Generated outputs
+# Pre-trained Models (keep folder structure, ignore large model files)
+Models/*.pt
+Models/*.onnx
+Models/*.engine
+Models/*.trt
+Models/*.weights
+!Models/README.md
+
+# Training Outputs and Runs
+runs/
+training_outputs/
+hyperparameter_tuning/
+model_exports/
+
+# Mission Logs and Tactical Data
+mission_logs/
+tactical_logs/
+*.log
+*.sitrep
+
+# Generated Outputs and Results
 test_results/
 output_*.mp4
 webcam_output_*.mp4
+tactical_capture_*.jpg
+detection_*.jpg
+inference_results/
+
+# Dataset Folders (ignore processed datasets but keep tools)
+ARCIS_Dataset_*/
+datasets/
+!Dataset_Tools/
+merged_dataset/
+processed_datasets/
+
+# Audio Assets (ignore large audio files)
+Audio_Assets/*.mp3
+Audio_Assets/*.wav
+Audio_Assets/*.ogg
+!Audio_Assets/README.md
+
+# Redis and Database Files
+*.rdb
+redis_data/
+database_backups/
+
+# Docker and Deployment
+docker_volumes/
+deployment_logs/
+.env
+.env.local
+.env.production
+
+# GPS and Hardware Logs
+gps_logs/
+sensor_data/
+hardware_logs/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# VS Code
+# IDE Files
 .vscode/
-
-# PyCharm
 .idea/
+*.swp
+*.swo
 
-# Dataset files
-Weapon detection.v2i.yolov5pytorch/
-weapon_detection/
-
-# Mac files
+# System Files
 .DS_Store
-
-# Windows files
 Thumbs.db
 ehthumbs.db
-Desktop.ini 
+Desktop.ini
+
+# Temporary Files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Backup Files
+*.bak
+*.backup
+backup_*/
+
+# Large Media Files
+*.avi
+*.mov
+*.mkv
+*.mp4
+*.wmv
+!sample_images/
+sample_images/*.jpg
+sample_images/*.png
+sample_images/*.jpeg
+
+# Configuration Files with Sensitive Data
+config_local.yaml
+secrets.yaml
+api_keys.txt
+
+# Performance and Profiling
+*.prof
+profiling_results/
+
+# Documentation Build Files
+Documentation/build/
+Documentation/_build/
+*.pdf
+!Documentation/README.md
+
+# Model Files (pre-trained models)
+yolov8n.pt
+yolo11n.pt 
