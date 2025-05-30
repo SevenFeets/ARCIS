@@ -41,6 +41,10 @@ const testConnection = async () => {
         const client = await pool.connect();
         console.log('✅ Database connected successfully');
 
+        // Set search path to include arcis schema
+        await client.query('SET search_path TO arcis, public');
+        console.log('✅ Search path set to arcis schema');
+
         // Test basic query
         const result = await client.query('SELECT NOW() as current_time');
         console.log('✅ Current time from database:', result.rows[0].current_time);
@@ -57,6 +61,21 @@ const testConnection = async () => {
 const initializeDatabase = async () => {
     try {
         const client = await pool.connect();
+
+        // Check if schema is already initialized
+        const schemaCheck = await client.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'arcis' 
+                AND table_name = 'users'
+            );
+        `);
+
+        if (schemaCheck.rows[0].exists) {
+            console.log('✅ ARCIS database schema already exists - skipping initialization');
+            client.release();
+            return true;
+        }
 
         // Read and execute the schema file
         const schemaPath = path.join(__dirname, 'database.sql');
@@ -78,7 +97,12 @@ const initializeDatabase = async () => {
 const query = async (text, params) => {
     const start = Date.now();
     try {
-        const res = await pool.query(text, params);
+        const client = await pool.connect();
+
+        // Set search path for each query
+        await client.query('SET search_path TO arcis, public');
+
+        const res = await client.query(text, params);
         const duration = Date.now() - start;
 
         console.log('Query executed:', {
@@ -87,6 +111,7 @@ const query = async (text, params) => {
             rows: res.rowCount
         });
 
+        client.release();
         return res;
     } catch (err) {
         console.error('❌ Query execution failed:', {
