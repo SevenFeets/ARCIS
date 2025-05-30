@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const { dbUtils, query, testConnection } = require('../config/db');
@@ -14,7 +13,14 @@ app.use(express.json());
 app.get('/api/test/health', async (req, res) => {
     try {
         await testConnection();
-        const result = await query('SELECT NOW() as current_time, COUNT(*) as user_count FROM test_users');
+
+        // Use schema-qualified table name or set search_path
+        const result = await query(`
+            SET search_path TO arcis, public;
+            SELECT NOW() as current_time, 
+                   (SELECT COUNT(*) FROM arcis.test_users) as user_count;
+        `);
+
         res.json({
             status: 'healthy',
             database: 'connected',

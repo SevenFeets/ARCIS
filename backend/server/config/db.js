@@ -1,9 +1,9 @@
 // Load environment variables
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const { Pool } = require('pg');
 const fs = require('fs');
-const path = require('path');
 
 // Database configuration
 const dbConfig = {
@@ -15,6 +15,8 @@ const dbConfig = {
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+    // Set default schema search path
+    options: '-c search_path=arcis,public'
 };
 
 // Log the configuration (without password) for debugging
@@ -103,14 +105,14 @@ const dbUtils = {
     testUsers: {
         // Get all users
         getAll: async () => {
-            const result = await query('SELECT * FROM test_users ORDER BY created_at DESC');
+            const result = await query('SELECT * FROM arcis.test_users ORDER BY created_at DESC');
             return result.rows;
         },
 
         // Create a new user
         create: async (name, email) => {
             const result = await query(
-                'INSERT INTO test_users (name, email) VALUES ($1, $2) RETURNING *',
+                'INSERT INTO arcis.test_users (name, email) VALUES ($1, $2) RETURNING *',
                 [name, email]
             );
             return result.rows[0];
@@ -118,20 +120,20 @@ const dbUtils = {
 
         // Find user by ID
         findById: async (id) => {
-            const result = await query('SELECT * FROM test_users WHERE id = $1', [id]);
+            const result = await query('SELECT * FROM arcis.test_users WHERE id = $1', [id]);
             return result.rows[0];
         },
 
         // Find user by email
         findByEmail: async (email) => {
-            const result = await query('SELECT * FROM test_users WHERE email = $1', [email]);
+            const result = await query('SELECT * FROM arcis.test_users WHERE email = $1', [email]);
             return result.rows[0];
         },
 
         // Update user
         update: async (id, name, email) => {
             const result = await query(
-                'UPDATE test_users SET name = $1, email = $2 WHERE id = $3 RETURNING *',
+                'UPDATE arcis.test_users SET name = $1, email = $2 WHERE id = $3 RETURNING *',
                 [name, email, id]
             );
             return result.rows[0];
@@ -139,20 +141,24 @@ const dbUtils = {
 
         // Delete user
         delete: async (id) => {
-            const result = await query('DELETE FROM test_users WHERE id = $1 RETURNING *', [id]);
+            const result = await query('DELETE FROM arcis.test_users WHERE id = $1 RETURNING *', [id]);
             return result.rows[0];
         },
 
         // Count users
         count: async () => {
-            const result = await query('SELECT COUNT(*) as total FROM test_users');
+            const result = await query('SELECT COUNT(*) as total FROM arcis.test_users');
             return parseInt(result.rows[0].total);
         }
     }
 };
 
 // Graceful shutdown
+let isShuttingDown = false;
 const gracefulShutdown = async () => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
     console.log('🔄 Closing database connections...');
     await pool.end();
     console.log('✅ Database connections closed');
