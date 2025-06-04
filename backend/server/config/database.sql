@@ -1,16 +1,11 @@
--- Simple test database schema for ARCIS
+-- Simplified ARCIS Database Schema - Weapon Detection Only
 -- Create schema
 CREATE SCHEMA IF NOT EXISTS arcis;
 SET search_path TO arcis, public;
 
--- Create ENUM type
+-- Simplified ENUM type for weapon detection only
 CREATE TYPE object_category AS ENUM (
-    'person',
-    'weapon',
-    'military_vehicle',
-    'aircraft',
-    'environmental_hazard',
-    'behavior'
+    'weapon'
 );
 
 -- Core tables
@@ -62,21 +57,20 @@ CREATE TABLE IF NOT EXISTS frames (
 CREATE TABLE IF NOT EXISTS detections (
     detection_id SERIAL PRIMARY KEY,
     frame_id INTEGER REFERENCES frames(frame_id),
-    object_category object_category NOT NULL,
-    object_type VARCHAR(50) NOT NULL,
+    object_category object_category NOT NULL DEFAULT 'weapon',
+    object_type VARCHAR(50) NOT NULL, -- 'Knife', 'Pistol', 'weapon', 'rifle'
     confidence FLOAT NOT NULL,
     bounding_box JSONB NOT NULL,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    pose_data JSONB,
     threat_level INTEGER,
     metadata JSONB
 );
 
--- Specialized detection tables
+-- Weapon detection details table
 CREATE TABLE IF NOT EXISTS weapon_detections (
     weapon_detection_id SERIAL PRIMARY KEY,
     detection_id INTEGER REFERENCES detections(detection_id),
-    weapon_type VARCHAR(50) NOT NULL,
+    weapon_type VARCHAR(50) NOT NULL, -- 'Knife', 'Pistol', 'weapon', 'rifle'
     visible_ammunition BOOLEAN DEFAULT FALSE,
     estimated_caliber VARCHAR(20),
     orientation_angle FLOAT,
@@ -84,69 +78,9 @@ CREATE TABLE IF NOT EXISTS weapon_detections (
     metadata JSONB
 );
 
-CREATE TABLE IF NOT EXISTS military_vehicle_detections (
-    vehicle_detection_id SERIAL PRIMARY KEY,
-    detection_id INTEGER REFERENCES detections(detection_id),
-    vehicle_type VARCHAR(50) NOT NULL,
-    vehicle_class VARCHAR(50),
-    nationality VARCHAR(50),
-    armament_visible BOOLEAN DEFAULT FALSE,
-    movement_status VARCHAR(20),
-    orientation_angle FLOAT,
-    metadata JSONB
-);
-
-CREATE TABLE IF NOT EXISTS aircraft_detections (
-    aircraft_detection_id SERIAL PRIMARY KEY,
-    detection_id INTEGER REFERENCES detections(detection_id),
-    aircraft_type VARCHAR(50) NOT NULL,
-    aircraft_class VARCHAR(50),
-    nationality VARCHAR(50),
-    altitude_estimate VARCHAR(50),
-    speed_estimate VARCHAR(20),
-    heading_angle FLOAT,
-    metadata JSONB
-);
-
-CREATE TABLE IF NOT EXISTS environmental_hazard_detections (
-    hazard_detection_id SERIAL PRIMARY KEY,
-    detection_id INTEGER REFERENCES detections(detection_id),
-    hazard_type VARCHAR(50) NOT NULL,
-    intensity INTEGER,
-    spread_rate INTEGER,
-    color VARCHAR(30),
-    coverage_area JSONB,
-    metadata JSONB
-);
-
-CREATE TABLE IF NOT EXISTS behavior_detections (
-    behavior_detection_id SERIAL PRIMARY KEY,
-    detection_id INTEGER REFERENCES detections(detection_id),
-    behavior_type VARCHAR(50) NOT NULL,
-    intensity INTEGER,
-    people_involved INTEGER,
-    behavior_category VARCHAR(50),
-    direction_of_movement JSONB,
-    metadata JSONB
-);
-
-CREATE TABLE IF NOT EXISTS threat_analysis (
-    threat_id SERIAL PRIMARY KEY,
-    session_id INTEGER REFERENCES detection_sessions(session_id),
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    threat_level INTEGER NOT NULL,
-    threat_type VARCHAR(100) NOT NULL,
-    geographic_area JSONB,
-    detection_ids INTEGER[],
-    response_recommendation TEXT,
-    confidence FLOAT,
-    metadata JSONB
-);
-
 CREATE TABLE IF NOT EXISTS alerts (
     alert_id SERIAL PRIMARY KEY,
     detection_id INTEGER REFERENCES detections(detection_id),
-    threat_analysis_id INTEGER REFERENCES threat_analysis(threat_id),
     alert_type VARCHAR(50) NOT NULL,
     alert_category VARCHAR(50) NOT NULL,
     severity INTEGER NOT NULL,
@@ -156,16 +90,6 @@ CREATE TABLE IF NOT EXISTS alerts (
     acknowledged_by INTEGER REFERENCES users(user_id),
     acknowledged_at TIMESTAMP,
     notes TEXT
-);
-
-CREATE TABLE IF NOT EXISTS environments (
-    environment_id SERIAL PRIMARY KEY,
-    session_id INTEGER REFERENCES detection_sessions(session_id),
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    mapping_data JSONB,
-    segments JSONB,
-    depth_map JSONB,
-    cover_positions JSONB
 );
 
 -- Detection annotations for tracking changes
@@ -183,7 +107,6 @@ CREATE TABLE IF NOT EXISTS detection_annotations (
 -- Indexes for performance optimization
 CREATE INDEX idx_frames_session ON frames(session_id);
 CREATE INDEX idx_detections_frame ON detections(frame_id);
-CREATE INDEX idx_detections_object_category ON detections(object_category);
 CREATE INDEX idx_detections_object_type ON detections(object_type);
 CREATE INDEX idx_detections_timestamp ON detections(timestamp);
 CREATE INDEX idx_detections_threat_level ON detections(threat_level);
@@ -191,22 +114,12 @@ CREATE INDEX idx_alerts_detection ON alerts(detection_id);
 CREATE INDEX idx_alerts_severity ON alerts(severity);
 CREATE INDEX idx_alerts_acknowledged ON alerts(acknowledged);
 CREATE INDEX idx_weapon_detections_type ON weapon_detections(weapon_type);
-CREATE INDEX idx_military_vehicle_detections_type ON military_vehicle_detections(vehicle_type);
-CREATE INDEX idx_aircraft_detections_type ON aircraft_detections(aircraft_type);
-CREATE INDEX idx_environmental_hazard_type ON environmental_hazard_detections(hazard_type);
-CREATE INDEX idx_behavior_detections_type ON behavior_detections(behavior_type);
-CREATE INDEX idx_behavior_detections_category ON behavior_detections(behavior_category);
-CREATE INDEX idx_threat_analysis_level ON threat_analysis(threat_level);
-CREATE INDEX idx_threat_analysis_type ON threat_analysis(threat_type);
-CREATE INDEX idx_alerts_category ON alerts(alert_category);
 CREATE INDEX idx_detection_annotations_detection ON detection_annotations(detection_id);
 
 -- Constraints for data validation
 ALTER TABLE detections ADD CONSTRAINT check_threat_level CHECK (threat_level >= 0 AND threat_level <= 10);
-ALTER TABLE environmental_hazard_detections ADD CONSTRAINT check_hazard_intensity CHECK (intensity >= 0 AND intensity <= 10);
-ALTER TABLE environmental_hazard_detections ADD CONSTRAINT check_spread_rate CHECK (spread_rate >= 0 AND spread_rate <= 10);
-ALTER TABLE behavior_detections ADD CONSTRAINT check_behavior_intensity CHECK (intensity >= 0 AND intensity <= 10);
 ALTER TABLE alerts ADD CONSTRAINT check_alert_severity CHECK (severity >= 1 AND severity <= 5);
+ALTER TABLE detections ADD CONSTRAINT check_weapon_types CHECK (object_type IN ('Knife', 'Pistol', 'weapon', 'rifle'));
 
 -- Views for common queries
 CREATE OR REPLACE VIEW recent_alerts AS
@@ -220,7 +133,7 @@ JOIN detection_sessions s ON f.session_id = s.session_id
 WHERE a.acknowledged = FALSE
 ORDER BY a.timestamp DESC;
 
-CREATE OR REPLACE VIEW threat_summary AS
+CREATE OR REPLACE VIEW weapon_threat_summary AS
 SELECT 
     date_trunc('hour', d.timestamp) AS time_period,
     d.object_type,
@@ -231,81 +144,24 @@ FROM detections d
 GROUP BY time_period, d.object_type
 ORDER BY time_period DESC, max_threat_level DESC;
 
-CREATE OR REPLACE VIEW military_threats AS
+CREATE OR REPLACE VIEW active_weapon_threats AS
 SELECT 
     d.detection_id,
     d.timestamp,
-    d.object_category,
     d.object_type,
     d.threat_level,
-    CASE 
-        WHEN d.object_category = 'military_vehicle' THEN 
-            (SELECT json_build_object('type', mv.vehicle_type, 'class', mv.vehicle_class, 'nationality', mv.nationality)
-             FROM military_vehicle_detections mv WHERE mv.detection_id = d.detection_id)
-        WHEN d.object_category = 'aircraft' THEN
-            (SELECT json_build_object('type', ac.aircraft_type, 'class', ac.aircraft_class, 'nationality', ac.nationality)
-             FROM aircraft_detections ac WHERE ac.detection_id = d.detection_id)
-        WHEN d.object_category = 'weapon' THEN
-            (SELECT json_build_object('type', w.weapon_type, 'in_use', w.in_use)
-             FROM weapon_detections w WHERE w.detection_id = d.detection_id)
-        ELSE NULL
-    END AS details,
+    d.confidence,
+    w.weapon_type,
+    w.in_use,
+    w.visible_ammunition,
     f.file_path,
     s.device_id
 FROM detections d
+JOIN weapon_detections w ON d.detection_id = w.detection_id
 JOIN frames f ON d.frame_id = f.frame_id
 JOIN detection_sessions s ON f.session_id = s.session_id
-WHERE d.object_category IN ('military_vehicle', 'aircraft', 'weapon')
-  AND d.threat_level >= 5
+WHERE d.threat_level >= 5
 ORDER BY d.threat_level DESC, d.timestamp DESC;
-
-CREATE OR REPLACE VIEW environmental_hazards AS
-SELECT 
-    d.detection_id,
-    d.timestamp,
-    d.object_type,
-    e.hazard_type,
-    e.intensity,
-    e.spread_rate,
-    e.color,
-    f.file_path,
-    s.device_id
-FROM detections d
-JOIN environmental_hazard_detections e ON d.detection_id = e.detection_id
-JOIN frames f ON d.frame_id = f.frame_id
-JOIN detection_sessions s ON f.session_id = s.session_id
-ORDER BY e.intensity DESC, d.timestamp DESC;
-
-CREATE OR REPLACE VIEW violent_behaviors AS
-SELECT 
-    d.detection_id,
-    d.timestamp,
-    d.object_type,
-    b.behavior_type,
-    b.intensity,
-    b.people_involved,
-    b.behavior_category,
-    f.file_path,
-    s.device_id
-FROM detections d
-JOIN behavior_detections b ON d.detection_id = b.detection_id
-JOIN frames f ON d.frame_id = f.frame_id
-JOIN detection_sessions s ON f.session_id = s.session_id
-WHERE b.behavior_category = 'violent'
-ORDER BY b.intensity DESC, d.timestamp DESC;
-
-CREATE OR REPLACE VIEW tactical_situation_summary AS
-SELECT 
-    date_trunc('minute', d.timestamp) AS time_period,
-    d.object_category,
-    COUNT(*) AS detection_count,
-    AVG(d.threat_level) AS avg_threat_level,
-    MAX(d.threat_level) AS max_threat_level,
-    ARRAY_AGG(DISTINCT d.object_type) AS detected_types
-FROM detections d
-WHERE d.timestamp > NOW() - INTERVAL '1 hour'
-GROUP BY time_period, d.object_category
-ORDER BY time_period DESC, max_threat_level DESC;
 
 CREATE OR REPLACE VIEW critical_alerts AS
 SELECT 
@@ -315,7 +171,6 @@ SELECT
     a.severity,
     a.timestamp,
     a.action_required,
-    d.object_category,
     d.object_type,
     d.threat_level,
     f.file_path,
@@ -333,7 +188,6 @@ CREATE OR REPLACE VIEW latest_detections AS
 SELECT 
     d.detection_id,
     d.timestamp,
-    d.object_category,
     d.object_type,
     d.confidence,
     d.threat_level,

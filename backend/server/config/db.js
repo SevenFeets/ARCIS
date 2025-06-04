@@ -143,7 +143,7 @@ const transaction = async (callback) => {
     }
 };
 
-// ARCIS Database Operations
+// ARCIS Database Operations - Weapon Detection Only
 const dbUtils = {
     // User operations
     users: {
@@ -171,7 +171,7 @@ const dbUtils = {
         },
 
         getAll: async () => {
-            const result = await query('SELECT user_id, username, email, role, created_at, last_login, is_active FROM users ORDER BY created_at DESC');
+            const result = await query('SELECT user_id, username, email, role, created_at, last_login FROM users ORDER BY created_at DESC');
             return result.rows;
         },
 
@@ -181,23 +181,15 @@ const dbUtils = {
                 [userId]
             );
             return result.rows[0];
-        },
-
-        deactivate: async (userId) => {
-            const result = await query(
-                'UPDATE users SET is_active = false WHERE user_id = $1 RETURNING *',
-                [userId]
-            );
-            return result.rows[0];
         }
     },
 
     // Device operations
     devices: {
-        create: async (deviceName, deviceType, ipAddress, macAddress, locationDescription, configuration) => {
+        create: async (deviceName, deviceType, ipAddress, macAddress, configuration) => {
             const result = await query(
-                'INSERT INTO devices (device_name, device_type, ip_address, mac_address, location_description, configuration) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-                [deviceName, deviceType, ipAddress, macAddress, locationDescription, configuration]
+                'INSERT INTO devices (device_name, device_type, ip_address, mac_address, configuration) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+                [deviceName, deviceType, ipAddress, macAddress, configuration]
             );
             return result.rows[0];
         },
@@ -228,10 +220,10 @@ const dbUtils = {
 
     // Detection session operations
     sessions: {
-        create: async (deviceId, createdBy, sessionSettings) => {
+        create: async (deviceId, createdBy, settings) => {
             const result = await query(
-                'INSERT INTO detection_sessions (device_id, created_by, session_settings) VALUES ($1, $2, $3) RETURNING *',
-                [deviceId, createdBy, sessionSettings]
+                'INSERT INTO detection_sessions (device_id, created_by, settings) VALUES ($1, $2, $3) RETURNING *',
+                [deviceId, createdBy, settings]
             );
             return result.rows[0];
         },
@@ -242,14 +234,14 @@ const dbUtils = {
         },
 
         getActive: async () => {
-            const result = await query('SELECT * FROM detection_sessions WHERE is_active = true ORDER BY started_at DESC');
+            const result = await query('SELECT * FROM detection_sessions WHERE status = $1 ORDER BY start_time DESC', ['active']);
             return result.rows;
         },
 
         end: async (sessionId) => {
             const result = await query(
-                'UPDATE detection_sessions SET ended_at = CURRENT_TIMESTAMP, is_active = false WHERE session_id = $1 RETURNING *',
-                [sessionId]
+                'UPDATE detection_sessions SET end_time = CURRENT_TIMESTAMP, status = $1 WHERE session_id = $2 RETURNING *',
+                ['ended', sessionId]
             );
             return result.rows[0];
         }
@@ -257,10 +249,10 @@ const dbUtils = {
 
     // Frame operations
     frames: {
-        create: async (sessionId, filePath, width, height, fileSize, metadata) => {
+        create: async (sessionId, filePath, width, height, metadata) => {
             const result = await query(
-                'INSERT INTO frames (session_id, file_path, width, height, file_size, metadata) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-                [sessionId, filePath, width, height, fileSize, metadata]
+                'INSERT INTO frames (session_id, file_path, width, height, metadata) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+                [sessionId, filePath, width, height, metadata]
             );
             return result.rows[0];
         },
@@ -271,17 +263,23 @@ const dbUtils = {
         },
 
         getBySession: async (sessionId) => {
-            const result = await query('SELECT * FROM frames WHERE session_id = $1 ORDER BY captured_at DESC', [sessionId]);
+            const result = await query('SELECT * FROM frames WHERE session_id = $1 ORDER BY timestamp DESC', [sessionId]);
             return result.rows;
         }
     },
 
-    // Detection operations
+    // Detection operations - Weapon Detection Only
     detections: {
-        create: async (frameId, objectCategory, objectType, confidence, boundingBox, threatLevel, poseData, metadata) => {
+        create: async (frameId, objectType, confidence, boundingBox, threatLevel, metadata) => {
+            // Validate weapon type
+            const validWeaponTypes = ['Knife', 'Pistol', 'weapon', 'rifle'];
+            if (!validWeaponTypes.includes(objectType)) {
+                throw new Error(`Invalid weapon type: ${objectType}. Must be one of: ${validWeaponTypes.join(', ')}`);
+            }
+
             const result = await query(
-                'INSERT INTO detections (frame_id, object_category, object_type, confidence, bounding_box, threat_level, pose_data, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-                [frameId, objectCategory, objectType, confidence, boundingBox, threatLevel, poseData, metadata]
+                'INSERT INTO detections (frame_id, object_category, object_type, confidence, bounding_box, threat_level, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+                [frameId, 'weapon', objectType, confidence, boundingBox, threatLevel, metadata]
             );
             return result.rows[0];
         },
@@ -298,7 +296,7 @@ const dbUtils = {
 
         getHighThreat: async (threshold = 7) => {
             const result = await query(
-                'SELECT * FROM detections WHERE threat_level >= $1 ORDER BY threat_level DESC, detected_at DESC',
+                'SELECT * FROM detections WHERE threat_level >= $1 ORDER BY threat_level DESC, timestamp DESC',
                 [threshold]
             );
             return result.rows;
@@ -306,8 +304,16 @@ const dbUtils = {
 
         getRecent: async (hours = 24) => {
             const result = await query(
-                'SELECT * FROM detections WHERE detected_at >= NOW() - INTERVAL $1 ORDER BY detected_at DESC',
+                'SELECT * FROM detections WHERE timestamp >= NOW() - INTERVAL $1 ORDER BY timestamp DESC',
                 [`${hours} hours`]
+            );
+            return result.rows;
+        },
+
+        getByWeaponType: async (weaponType) => {
+            const result = await query(
+                'SELECT * FROM detections WHERE object_type = $1 ORDER BY timestamp DESC',
+                [weaponType]
             );
             return result.rows;
         }
@@ -316,6 +322,12 @@ const dbUtils = {
     // Weapon detection operations
     weapons: {
         create: async (detectionId, weaponType, visibleAmmunition, estimatedCaliber, orientationAngle, inUse, metadata) => {
+            // Validate weapon type
+            const validWeaponTypes = ['Knife', 'Pistol', 'weapon', 'rifle'];
+            if (!validWeaponTypes.includes(weaponType)) {
+                throw new Error(`Invalid weapon type: ${weaponType}. Must be one of: ${validWeaponTypes.join(', ')}`);
+            }
+
             const result = await query(
                 'INSERT INTO weapon_detections (detection_id, weapon_type, visible_ammunition, estimated_caliber, orientation_angle, in_use, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
                 [detectionId, weaponType, visibleAmmunition, estimatedCaliber, orientationAngle, inUse, metadata]
@@ -332,126 +344,19 @@ const dbUtils = {
             const result = await query(
                 `SELECT wd.*, d.* FROM weapon_detections wd 
                  JOIN detections d ON wd.detection_id = d.detection_id 
-                 WHERE wd.in_use = true AND d.detected_at >= NOW() - INTERVAL '1 hour' 
+                 WHERE wd.in_use = true AND d.timestamp >= NOW() - INTERVAL '1 hour' 
                  ORDER BY d.threat_level DESC`
             );
             return result.rows;
-        }
-    },
+        },
 
-    // Vehicle detection operations
-    vehicles: {
-        create: async (detectionId, vehicleType, militaryClassification, estimatedOccupants, movementDirection, estimatedSpeed, armorType, visibleWeapons, metadata) => {
+        getByType: async (weaponType) => {
             const result = await query(
-                'INSERT INTO vehicle_detections (detection_id, vehicle_type, military_classification, estimated_occupants, movement_direction, estimated_speed, armor_type, visible_weapons, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-                [
-                    detectionId,
-                    vehicleType,
-                    militaryClassification,
-                    estimatedOccupants,
-                    movementDirection,
-                    estimatedSpeed,
-                    armorType,
-                    typeof visibleWeapons === 'string' ? visibleWeapons : JSON.stringify(visibleWeapons),
-                    typeof metadata === 'string' ? metadata : JSON.stringify(metadata)
-                ]
-            );
-            return result.rows[0];
-        },
-
-        findByDetection: async (detectionId) => {
-            const result = await query('SELECT * FROM vehicle_detections WHERE detection_id = $1', [detectionId]);
-            return result.rows[0];
-        },
-
-        getMilitary: async () => {
-            const result = await query(
-                `SELECT vd.*, d.* FROM vehicle_detections vd 
-                 JOIN detections d ON vd.detection_id = d.detection_id 
-                 WHERE vd.military_classification IS NOT NULL 
-                 ORDER BY d.detected_at DESC`
-            );
-            return result.rows;
-        }
-    },
-
-    // Person detection operations
-    persons: {
-        create: async (detectionId, uniformType, estimatedAgeRange, gender, carryingEquipment, poseClassification, activityClassification, metadata) => {
-            const result = await query(
-                'INSERT INTO person_detections (detection_id, uniform_type, estimated_age_range, gender, carrying_equipment, pose_classification, activity_classification, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-                [
-                    detectionId,
-                    uniformType,
-                    estimatedAgeRange,
-                    gender,
-                    typeof carryingEquipment === 'string' ? carryingEquipment : JSON.stringify(carryingEquipment || []),
-                    poseClassification,
-                    activityClassification,
-                    typeof metadata === 'string' ? metadata : JSON.stringify(metadata || {})
-                ]
-            );
-            return result.rows[0];
-        },
-
-        findById: async (personDetectionId) => {
-            const result = await query('SELECT * FROM person_detections WHERE person_detection_id = $1', [personDetectionId]);
-            return result.rows[0];
-        },
-
-        getByDetection: async (detectionId) => {
-            const result = await query('SELECT * FROM person_detections WHERE detection_id = $1', [detectionId]);
-            return result.rows[0];
-        },
-
-        getMilitary: async () => {
-            const result = await query(
-                `SELECT pd.*, d.* FROM person_detections pd 
-                 JOIN detections d ON pd.detection_id = d.detection_id 
-                 WHERE pd.uniform_type LIKE '%military%' OR pd.uniform_type LIKE '%combat%'
-                 ORDER BY d.detected_at DESC`
-            );
-            return result.rows;
-        },
-
-        getByActivity: async (activity) => {
-            const result = await query(
-                'SELECT * FROM person_detections WHERE activity_classification = $1 ORDER BY person_detection_id DESC',
-                [activity]
-            );
-            return result.rows;
-        }
-    },
-
-    // Environmental hazard operations
-    environmental: {
-        create: async (detectionId, hazardType, severityLevel, estimatedRadius, windDirection, metadata) => {
-            const result = await query(
-                'INSERT INTO environmental_hazards (detection_id, hazard_type, severity_level, estimated_radius, wind_direction, metadata) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-                [detectionId, hazardType, severityLevel, estimatedRadius, windDirection, typeof metadata === 'string' ? metadata : JSON.stringify(metadata || {})]
-            );
-            return result.rows[0];
-        },
-
-        findByDetection: async (detectionId) => {
-            const result = await query('SELECT * FROM environmental_hazards WHERE detection_id = $1', [detectionId]);
-            return result.rows[0];
-        },
-
-        getBySeverity: async (minSeverity = 5) => {
-            const result = await query(
-                'SELECT * FROM environmental_hazards WHERE severity_level >= $1 ORDER BY severity_level DESC',
-                [minSeverity]
-            );
-            return result.rows;
-        },
-
-        getActive: async () => {
-            const result = await query(
-                `SELECT eh.*, d.* FROM environmental_hazards eh 
-                 JOIN detections d ON eh.detection_id = d.detection_id 
-                 WHERE d.detected_at >= NOW() - INTERVAL '24 hours' 
-                 ORDER BY eh.severity_level DESC, d.detected_at DESC`
+                `SELECT wd.*, d.* FROM weapon_detections wd 
+                 JOIN detections d ON wd.detection_id = d.detection_id 
+                 WHERE wd.weapon_type = $1 
+                 ORDER BY d.timestamp DESC`,
+                [weaponType]
             );
             return result.rows;
         }
@@ -462,7 +367,7 @@ const dbUtils = {
         create: async (detectionId, alertType, severity, title, description, metadata) => {
             const result = await query(
                 'INSERT INTO alerts (detection_id, alert_type, severity, title, description, metadata) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-                [detectionId, alertType, severity, title, description, typeof metadata === 'string' ? metadata : JSON.stringify(metadata || {})]
+                [detectionId, alertType, severity, title, description, metadata]
             );
             return result.rows[0];
         },
@@ -474,64 +379,51 @@ const dbUtils = {
 
         acknowledge: async (alertId, acknowledgedBy) => {
             const result = await query(
-                'UPDATE alerts SET acknowledged_at = CURRENT_TIMESTAMP, acknowledged_by = $2 WHERE alert_id = $1 RETURNING *',
+                'UPDATE alerts SET acknowledged = true, acknowledged_at = CURRENT_TIMESTAMP, acknowledged_by = $2 WHERE alert_id = $1 RETURNING *',
                 [alertId, acknowledgedBy]
-            );
-            return result.rows[0];
-        },
-
-        resolve: async (alertId, resolvedBy, resolution) => {
-            const result = await query(
-                'UPDATE alerts SET resolved_at = CURRENT_TIMESTAMP, resolved_by = $2, metadata = metadata || $3 WHERE alert_id = $1 RETURNING *',
-                [alertId, resolvedBy, JSON.stringify({ resolution })]
             );
             return result.rows[0];
         },
 
         getUnacknowledged: async () => {
             const result = await query(
-                'SELECT * FROM alerts WHERE acknowledged_at IS NULL ORDER BY severity DESC, created_at DESC'
+                'SELECT * FROM alerts WHERE acknowledged = false ORDER BY severity DESC, created_at DESC'
             );
             return result.rows;
         },
 
         getActive: async () => {
             const result = await query(
-                'SELECT * FROM alerts WHERE resolved_at IS NULL ORDER BY severity DESC, created_at DESC'
+                'SELECT * FROM alerts WHERE acknowledged = false ORDER BY severity DESC, created_at DESC'
             );
             return result.rows;
         }
     },
 
-    // Tactical analysis operations
+    // Tactical analysis operations - Weapon focused
     tactical: {
-        getSituation: async () => {
-            const result = await query('SELECT * FROM tactical_situation LIMIT 100');
-            return result.rows;
-        },
-
-        getMilitaryThreats: async () => {
-            const result = await query('SELECT * FROM military_threats LIMIT 50');
-            return result.rows;
-        },
-
-        getEnvironmentalHazards: async () => {
-            const result = await query('SELECT * FROM environmental_overview LIMIT 50');
-            return result.rows;
-        },
-
-        getThreatSummary: async () => {
+        getWeaponSummary: async () => {
             const result = await query(`
                 SELECT 
-                    object_category,
+                    object_type,
                     COUNT(*) as count,
                     AVG(threat_level) as avg_threat_level,
                     MAX(threat_level) as max_threat_level
                 FROM detections 
-                WHERE detected_at >= NOW() - INTERVAL '24 hours'
-                GROUP BY object_category
+                WHERE timestamp >= NOW() - INTERVAL '24 hours'
+                GROUP BY object_type
                 ORDER BY max_threat_level DESC
             `);
+            return result.rows;
+        },
+
+        getActiveThreats: async () => {
+            const result = await query('SELECT * FROM active_weapon_threats LIMIT 50');
+            return result.rows;
+        },
+
+        getCriticalAlerts: async () => {
+            const result = await query('SELECT * FROM critical_alerts LIMIT 50');
             return result.rows;
         }
     }
