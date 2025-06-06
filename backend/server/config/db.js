@@ -18,7 +18,15 @@ const dbConfig = {
 };
 
 // Log the configuration (without password) for debugging
-console.log('Database Configuration:', {
+console.log('=== Database Configuration Debug ===');
+console.log('Environment variables loaded:');
+console.log('DB_USER:', process.env.DB_USER);
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_NAME:', process.env.DB_NAME);
+console.log('DB_PORT:', process.env.DB_PORT);
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '***provided***' : 'NOT SET');
+
+console.log('Final Database Configuration:', {
     user: dbConfig.user,
     host: dbConfig.host,
     database: dbConfig.database,
@@ -145,6 +153,8 @@ const transaction = async (callback) => {
 
 // ARCIS Database Operations - Weapon Detection Only
 const dbUtils = {
+    // Expose the query function
+    query,
     // User operations
     users: {
         create: async (username, email, passwordHash, role = 'viewer') => {

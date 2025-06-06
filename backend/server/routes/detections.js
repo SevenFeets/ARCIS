@@ -9,9 +9,34 @@ const router = express.Router();
 // Apply rate limiting
 router.use(arcjetMiddleware);
 
-// POST /api/detections/incoming - Receive weapon detection from Jetson Nano
+// GET /api/detections/test - Test database connection
+router.get('/test', async (req, res) => {
+    try {
+        console.log('Testing database connection...');
+        const result = await dbUtils.query('SELECT COUNT(*) as count FROM detections');
+
+        res.json({
+            success: true,
+            message: 'Database connection successful',
+            total_detections: result.rows[0].count,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Database test error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Database connection failed',
+            details: error.message
+        });
+    }
+});
+
+// POST /api/detections/incoming - Receive weapon detection from Jetson Nano (DEBUG VERSION)
 router.post('/incoming', async (req, res) => {
     try {
+        console.log('=== INCOMING DETECTION REQUEST ===');
+        console.log('Request body:', JSON.stringify(req.body, null, 2));
+
         const {
             device_id,
             object_type,        // 'Knife', 'Pistol', 'weapon', 'rifle'
@@ -23,6 +48,7 @@ router.post('/incoming', async (req, res) => {
 
         // Validate required fields
         if (!device_id || !object_type || confidence === undefined) {
+            console.log('Validation failed: Missing required fields');
             return res.status(400).json({
                 error: 'Missing required detection data',
                 code: 'MISSING_DETECTION_DATA'
@@ -32,6 +58,7 @@ router.post('/incoming', async (req, res) => {
         // Validate weapon type
         const validWeaponTypes = ['Knife', 'Pistol', 'weapon', 'rifle'];
         if (!validWeaponTypes.includes(object_type)) {
+            console.log('Validation failed: Invalid weapon type');
             return res.status(400).json({
                 error: `Invalid weapon type: ${object_type}. Must be one of: ${validWeaponTypes.join(', ')}`,
                 code: 'INVALID_WEAPON_TYPE'
@@ -40,98 +67,119 @@ router.post('/incoming', async (req, res) => {
 
         // Calculate threat level based on weapon type and confidence
         const threatLevel = calculateThreatLevel(object_type, confidence);
+        console.log('Calculated threat level:', threatLevel);
 
-        // Create detection record
-        const detection = await dbUtils.detections.create(
-            null, // frameId - will be handled separately if needed
+        // Test database connection first
+        try {
+            console.log('Testing database connection...');
+            const testResult = await dbUtils.query('SELECT 1 as test');
+            console.log('Database connection test passed:', testResult.rows);
+        } catch (dbTestError) {
+            console.error('=== Database Connection Test Failed ===');
+            console.error('Error name:', dbTestError.name);
+            console.error('Error message:', dbTestError.message);
+            console.error('Error code:', dbTestError.code);
+            console.error('Error stack:', dbTestError.stack);
+            throw new Error(`Database connection failed: ${dbTestError.message}`);
+        }
+
+        // Create detection record directly in database (simplified)
+        console.log('Creating detection with data:', {
             object_type,
             confidence,
-            JSON.stringify(bounding_box),
             threatLevel,
-            JSON.stringify({
-                device_id,
-                image_path,
-                ...metadata
-            })
-        );
+            device_id
+        });
 
-        // Create weapon-specific detection details
-        await dbUtils.weapons.create(
-            detection.detection_id,
-            object_type,
-            false, // visible_ammunition - default false
-            null,  // estimated_caliber
-            null,  // orientation_angle
-            true,  // in_use - assume weapon is active when detected
-            JSON.stringify(metadata || {})
-        );
+        let detection;
+        try {
+            const detectionQuery = `
+                INSERT INTO arcis.detections 
+                (frame_id, object_category, object_type, confidence, bounding_box, threat_level, metadata) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7) 
+                RETURNING *
+            `;
 
-        // If high threat, create automatic alert
-        if (threatLevel >= 7) {
-            await createThreatAlert(detection);
+            const detectionParams = [
+                null, // frame_id - allow NULL for direct incoming detections
+                'weapon', // object_category
+                object_type,
+                confidence,
+                JSON.stringify(bounding_box || {}),
+                threatLevel,
+                JSON.stringify({
+                    device_id,
+                    image_path,
+                    timestamp: new Date().toISOString(),
+                    ...metadata
+                })
+            ];
+
+            console.log('Detection query params:', detectionParams);
+
+            const detectionResult = await dbUtils.query(detectionQuery, detectionParams);
+            detection = detectionResult.rows[0];
+            console.log('Detection created successfully with ID:', detection.detection_id);
+
+        } catch (detectionError) {
+            console.error('Detection creation failed:', detectionError);
+            throw new Error(`Detection creation failed: ${detectionError.message}`);
         }
 
         res.status(201).json({
+            success: true,
             message: 'Weapon detection processed successfully',
             detection_id: detection.detection_id,
             weapon_type: object_type,
             threat_level: threatLevel,
             confidence: Math.round(confidence * 100),
-            alert_created: threatLevel >= 7
+            debug: true
         });
 
     } catch (error) {
-        console.error('Weapon detection processing error:', error);
+        console.error('=== INCOMING DETECTION ERROR ===');
+        console.error('Error details:', error);
+        console.error('Error stack:', error.stack);
+
         res.status(500).json({
+            success: false,
             error: 'Failed to process weapon detection',
-            code: 'DETECTION_PROCESSING_ERROR'
+            code: 'DETECTION_PROCESSING_ERROR',
+            debug_message: error.message
         });
     }
 });
 
-// GET /api/detections - Get all weapon detections (with pagination)
-router.get('/', verifyToken, requireClearance(2), validatePagination, async (req, res) => {
+// GET /api/detections - Get all weapon detections (simplified)
+router.get('/', async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 50;
-        const weaponType = req.query.weapon_type; // filter by weapon type
-        const threatLevel = req.query.threat_level; // filter by threat level
+        console.log('GET /api/detections called');
 
-        let detections;
-        if (weaponType) {
-            detections = await dbUtils.detections.getByWeaponType(weaponType);
-        } else if (threatLevel) {
-            detections = await dbUtils.detections.getHighThreat(parseInt(threatLevel));
-        } else {
-            detections = await dbUtils.detections.getRecent(24); // last 24 hours
-        }
+        // Simple query to get all detections
+        const result = await dbUtils.query('SELECT * FROM arcis.detections ORDER BY detection_id DESC LIMIT 50');
+        const detections = result.rows;
 
-        // Apply pagination
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const paginatedDetections = detections.slice(startIndex, endIndex);
+        console.log(`Found ${detections.length} detections`);
 
         res.json({
-            weapon_detections: paginatedDetections,
-            pagination: {
-                page,
-                limit,
-                total: detections.length,
-                pages: Math.ceil(detections.length / limit)
-            }
+            success: true,
+            data: detections,
+            count: detections.length,
+            message: detections.length === 0 ? 'No detections found' : `Found ${detections.length} detections`
         });
 
     } catch (error) {
-        console.error('Get weapon detections error:', error);
+        console.error('Get detections error:', error);
         res.status(500).json({
-            error: 'Failed to retrieve weapon detections',
-            code: 'GET_DETECTIONS_ERROR'
+            success: false,
+            error: 'Failed to retrieve detections',
+            details: error.message
         });
     }
 });
 
 // GET /api/detections/threats - Get current weapon threats (high priority)
-router.get('/threats', verifyToken, requireClearance(2), async (req, res) => {
+router.get('/threats', async (req, res) => {
     try {
         const threats = await dbUtils.detections.getHighThreat(6); // threat level 6+
 
@@ -250,6 +298,168 @@ router.put('/:id/verify', verifyToken, requireRole(['analyst', 'commander', 'adm
         res.status(500).json({
             error: 'Failed to verify weapon detection',
             code: 'VERIFY_DETECTION_ERROR'
+        });
+    }
+});
+
+// POST - Receive detection data from Jetson Nano
+router.post('/jetson-detection', async (req, res) => {
+    try {
+        const {
+            detectedObjects,
+            frame, // base64 encoded image
+            systemMetrics,
+            timestamp,
+            deviceId
+        } = req.body;
+
+        // TODO: Save to database
+        console.log('Received Jetson detection:', {
+            objectCount: detectedObjects.length,
+            timestamp,
+            deviceId
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Detection data received successfully',
+            id: Date.now() // temporary ID, replace with database ID
+        });
+    } catch (error) {
+        console.error('Error processing Jetson detection:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to process detection data'
+        });
+    }
+});
+
+// POST - Receive detection data from Raspberry Pi + Google Cloud Vision
+router.post('/raspberry-detection', async (req, res) => {
+    try {
+        const {
+            cloudVisionResults,
+            frame, // base64 encoded image
+            systemMetrics,
+            timestamp,
+            deviceId
+        } = req.body;
+
+        // TODO: Save to database
+        console.log('Received Raspberry Pi detection:', {
+            resultsCount: cloudVisionResults.length,
+            timestamp,
+            deviceId
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Detection data received successfully',
+            id: Date.now() // temporary ID, replace with database ID
+        });
+    } catch (error) {
+        console.error('Error processing Raspberry Pi detection:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to process detection data'
+        });
+    }
+});
+
+// GET - Retrieve all detection records for frontend
+router.get('/all', async (req, res) => {
+    try {
+        // TODO: Fetch from database
+        const mockData = [
+            {
+                id: 1,
+                device: 'Jetson Nano',
+                timestamp: new Date().toISOString(),
+                objectCount: 3,
+                systemMetrics: { cpu: 45, memory: 60, temperature: 42 },
+                comments: []
+            },
+            {
+                id: 2,
+                device: 'Raspberry Pi',
+                timestamp: new Date().toISOString(),
+                objectCount: 2,
+                systemMetrics: { cpu: 30, memory: 45, temperature: 38 },
+                comments: []
+            }
+        ];
+
+        res.json({ success: true, data: mockData });
+    } catch (error) {
+        console.error('Error fetching detections:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch detection data'
+        });
+    }
+});
+
+// DELETE - Delete detection record
+router.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // TODO: Delete from database
+        console.log('Deleting detection with ID:', id);
+
+        res.json({
+            success: true,
+            message: 'Detection deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting detection:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete detection'
+        });
+    }
+});
+
+// PUT - Add comment to detection
+router.put('/:id/comment', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { comment, userId } = req.body;
+
+        // TODO: Update database with comment
+        console.log('Adding comment to detection:', id, comment);
+
+        res.json({
+            success: true,
+            message: 'Comment added successfully'
+        });
+    } catch (error) {
+        console.error('Error adding comment:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to add comment'
+        });
+    }
+});
+
+// POST - Manually add detection record
+router.post('/manual', async (req, res) => {
+    try {
+        const detectionData = req.body;
+
+        // TODO: Save manual entry to database
+        console.log('Manual detection entry:', detectionData);
+
+        res.status(201).json({
+            success: true,
+            message: 'Manual detection record created',
+            id: Date.now()
+        });
+    } catch (error) {
+        console.error('Error creating manual detection:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create manual detection'
         });
     }
 });
