@@ -9,6 +9,8 @@ import RegisterPage from './pages/RegisterPage'
 import PrivateRoute from './components/ui/privateRoute'
 import ProfilePage from './pages/ProfilePage'
 import AuthTester from './components/tests/AuthTester'
+import ApiTest from './components/ApiTest'
+import SimpleApiTest from './components/SimpleApiTest'
 
 function App() {
   return (
@@ -29,6 +31,8 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
           <Route path="/auth-test" element={<AuthTester />} />
+          <Route path="/api-test" element={<ApiTest />} />
+          <Route path="/simple-api-test" element={<SimpleApiTest />} />
         </Routes>
       </Box>
       <Footer />
