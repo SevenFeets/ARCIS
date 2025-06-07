@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage'
 import AuthTester from './components/tests/AuthTester'
 import ApiTest from './components/ApiTest'
 import SimpleApiTest from './components/SimpleApiTest'
+import DashboardPage from './pages/DashboardPage'
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           <Route path="/login" element={<HomePage />} />
           <Route element={<PrivateRoute />}>
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
           </Route>
           <Route path="/auth-test" element={<AuthTester />} />
           <Route path="/api-test" element={<ApiTest />} />
