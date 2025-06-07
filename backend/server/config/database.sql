@@ -63,7 +63,9 @@ CREATE TABLE IF NOT EXISTS detections (
     bounding_box JSONB NOT NULL,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     threat_level INTEGER,
-    metadata JSONB
+    metadata JSONB,
+    detection_frame_data TEXT, -- Base64 encoded detection frame image
+    system_metrics JSONB -- Device system metrics at time of detection
 );
 
 -- Weapon detection details table
