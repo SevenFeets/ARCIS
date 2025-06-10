@@ -12,6 +12,9 @@ import AuthTester from './components/tests/AuthTester'
 import ApiTest from './components/ApiTest'
 import SimpleApiTest from './components/SimpleApiTest'
 import DashboardPage from './pages/DashboardPage'
+import ProjectOverviewPage from './pages/ProjectOverviewPage'
+import QuickApiTest from './components/debug/QuickApiTest'
+import AuthPage from './pages/AuthPage'
 
 function App() {
   return (
@@ -24,10 +27,12 @@ function App() {
       <Box flex="1">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/project-overview" element={<ProjectOverviewPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<HomePage />} />
+          <Route path="/auth" element={<AuthPage />} />
           <Route element={<PrivateRoute />}>
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
@@ -35,6 +40,7 @@ function App() {
           <Route path="/auth-test" element={<AuthTester />} />
           <Route path="/api-test" element={<ApiTest />} />
           <Route path="/simple-api-test" element={<SimpleApiTest />} />
+          <Route path="/quick-api-test" element={<QuickApiTest />} />
         </Routes>
       </Box>
       <Footer />

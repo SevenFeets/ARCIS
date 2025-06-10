@@ -177,6 +177,9 @@ const Navbar = () => {
                                 {currentUser && (
                                     <MenuItem as={RouterLink} to="/auth-test">Auth Tester</MenuItem>
                                 )}
+                                {currentUser && (
+                                    <MenuItem as={RouterLink} to="/quick-api-test">🛠️ Quick API Test</MenuItem>
+                                )}
                             </MenuList>
                         </Menu>
                     ) : (

@@ -36,26 +36,40 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
     const [frameError, setFrameError] = useState<string | null>(null);
     const toast = useToast();
 
+    // Add console log for debugging
+    console.log('ExpandThreatModal render:', { isOpen, threat });
+
     // Theme colors
     const bgColor = useColorModeValue('#ffffff', '#2D3748');
-    const borderColor = useColorModeValue('#e0e0e0', '#4A5568');
-    const textColor = useColorModeValue('#1A202C', '#F7FAFC');
 
     useEffect(() => {
         if (isOpen && threat?.id) {
             fetchFrameData();
         }
+        // Reset state when modal closes
+        if (!isOpen) {
+            setFrameData(null);
+            setFrameError(null);
+        }
     }, [isOpen, threat]);
 
     const fetchFrameData = async () => {
+        if (!threat?.id) {
+            console.error('No threat ID available');
+            setFrameError('Invalid threat data');
+            return;
+        }
+
         setFrameLoading(true);
         setFrameError(null);
         try {
+            console.log('Fetching frame data for threat ID:', threat.id);
             const response = await detectionsAPI.getDetectionFrame(threat.id);
+            console.log('Frame data response:', response.data);
             setFrameData(response.data.frame_data);
         } catch (error) {
+            console.error('Error fetching frame data:', error);
             setFrameError('No frame data available');
-            console.log('Frame data not available for this detection');
         } finally {
             setFrameLoading(false);
         }
@@ -82,167 +96,97 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
         }
     };
 
-    return (
-        <Modal isOpen={isOpen} onClose={onClose} size="6xl">
-            <ModalOverlay bg="blackAlpha.800" />
-            <ModalContent
-                maxW="95vw"
-                maxH="95vh"
-                bg={bgColor}
-                border={`2px solid ${borderColor}`}
-            >
-                <ModalHeader
-                    bg="red.500"
-                    color="white"
-                    fontSize="2xl"
-                    py={6}
-                    borderTopRadius="md"
-                >
-                    ⚠️ THREAT DETAILS - EXPANDED VIEW
-                </ModalHeader>
-                <ModalCloseButton color="white" size="lg" />
+    // Safety check for threat object
+    if (!threat) {
+        console.error('ExpandThreatModal: No threat object provided');
+        return null;
+    }
 
-                <ModalBody p={8} overflowY="auto">
-                    <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={8} h="full">
-                        {/* Left Column - Threat Information */}
-                        <VStack spacing={6} align="stretch">
+    // Log threat object structure for debugging
+    console.log('ExpandThreatModal threat object:', threat);
+
+    // Add error boundary for the component
+    try {
+        return (
+            <Modal isOpen={isOpen} onClose={onClose} size="xl">
+                <ModalOverlay />
+                <ModalContent
+                    maxW="90vw"
+                    maxH="90vh"
+                    bg={bgColor}
+                >
+                    <ModalHeader
+                        bg="red.500"
+                        color="white"
+                        fontSize="xl"
+                    >
+                        ⚠️ THREAT DETAILS - {threat.weapon_type || 'Unknown'}
+                    </ModalHeader>
+                    <ModalCloseButton color="white" />
+
+                    <ModalBody overflowY="auto">
+                        <VStack spacing={4} align="stretch">
                             {/* Main Threat Info */}
-                            <Box
-                                p={6}
-                                border={`2px solid red`}
-                                borderRadius="lg"
-                                bg="red.50"
-                                _dark={{ bg: "red.900", opacity: 0.3 }}
-                            >
+                            <Box p={4} border="2px solid red" borderRadius="lg" bg="red.50" _dark={{ bg: "red.900", opacity: 0.3 }}>
                                 <HStack spacing={4} mb={4}>
-                                    <Text fontSize="4xl">
-                                        {getWeaponTypeIcon(threat.weapon_type)}
-                                    </Text>
+                                    <Text fontSize="3xl">{getWeaponTypeIcon(threat.weapon_type || '')}</Text>
                                     <VStack align="start" spacing={2}>
-                                        <Text fontSize="2xl" fontWeight="bold" color="red.600" _dark={{ color: "red.300" }}>
-                                            {threat.weapon_type.toUpperCase()}
+                                        <Text fontSize="xl" fontWeight="bold" color="red.600" _dark={{ color: "red.300" }}>
+                                            {(threat.weapon_type || 'Unknown').toUpperCase()}
                                         </Text>
-                                        <Badge
-                                            colorScheme={getThreatLevelColor(threat.threat_level)}
-                                            variant="solid"
-                                            fontSize="lg"
-                                            px={3}
-                                            py={1}
-                                        >
-                                            THREAT LEVEL {threat.threat_level}
+                                        <Badge colorScheme={getThreatLevelColor(threat.threat_level || 5)} variant="solid" fontSize="md">
+                                            THREAT LEVEL {threat.threat_level || 5}
                                         </Badge>
                                     </VStack>
                                 </HStack>
-
                                 <Grid templateColumns="repeat(2, 1fr)" gap={4}>
                                     <Box>
                                         <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.300" }}>Confidence</Text>
-                                        <Text fontSize="3xl" fontWeight="bold" color="red.600" _dark={{ color: "red.300" }}>
-                                            {threat.confidence}%
+                                        <Text fontSize="2xl" fontWeight="bold" color="red.600" _dark={{ color: "red.300" }}>
+                                            {threat.confidence || 0}%
                                         </Text>
                                     </Box>
                                     <Box>
                                         <Text fontSize="sm" color="gray.600" _dark={{ color: "gray.300" }}>Detection Time</Text>
-                                        <Text fontSize="lg" fontWeight="bold" color={textColor}>
-                                            {formatTimestamp(threat.timestamp)}
-                                        </Text>
+                                        <Text fontSize="md" fontWeight="bold">{formatTimestamp(threat.timestamp)}</Text>
                                     </Box>
                                 </Grid>
                             </Box>
 
                             {/* Location & Device Info */}
-                            <Box p={6} border={`1px solid ${borderColor}`} borderRadius="lg" bg={bgColor}>
-                                <Text fontSize="xl" fontWeight="bold" mb={4} color={textColor}>
-                                    📍 Location & Device Information
-                                </Text>
-                                <VStack spacing={4} align="stretch">
+                            <Box p={4} border="1px solid" borderColor="gray.200" borderRadius="lg">
+                                <Text fontSize="lg" fontWeight="bold" mb={3}>📍 Location & Device</Text>
+                                <VStack spacing={2} align="stretch">
                                     <HStack justify="space-between">
-                                        <Text fontWeight="medium" color={textColor}>Location:</Text>
-                                        <Text fontSize="lg" fontWeight="bold" color="orange.500">
-                                            {threat.location || 'Unknown Location'}
-                                        </Text>
+                                        <Text fontWeight="medium">Location:</Text>
+                                        <Text fontWeight="bold" color="orange.500">{threat.location || 'Unknown'}</Text>
                                     </HStack>
                                     <HStack justify="space-between">
-                                        <Text fontWeight="medium" color={textColor}>Device:</Text>
-                                        <Text fontSize="lg" fontWeight="bold" color="blue.500">
-                                            {threat.device}
-                                        </Text>
+                                        <Text fontWeight="medium">Device:</Text>
+                                        <Text fontWeight="bold" color="blue.500">{threat.device || 'Unknown'}</Text>
                                     </HStack>
                                     <HStack justify="space-between">
-                                        <Text fontWeight="medium" color={textColor}>Device ID:</Text>
-                                        <Text fontSize="md" color={textColor}>
-                                            {threat.device_id}
-                                        </Text>
+                                        <Text fontWeight="medium">Device ID:</Text>
+                                        <Text>{threat.device_id || 'Unknown'}</Text>
                                     </HStack>
                                 </VStack>
                             </Box>
 
-                            {/* Bounding Box Info */}
-                            <Box p={6} border={`1px solid ${borderColor}`} borderRadius="lg" bg={bgColor}>
-                                <Text fontSize="xl" fontWeight="bold" mb={4} color={textColor}>
-                                    🎯 Detection Area
-                                </Text>
-                                <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-                                    <Box>
-                                        <Text fontSize="sm" color="gray.500">Position (x, y)</Text>
-                                        <Text fontWeight="bold" color={textColor}>
-                                            ({threat.bounding_box.x}, {threat.bounding_box.y})
-                                        </Text>
-                                    </Box>
-                                    <Box>
-                                        <Text fontSize="sm" color="gray.500">Dimensions</Text>
-                                        <Text fontWeight="bold" color={textColor}>
-                                            {threat.bounding_box.width} × {threat.bounding_box.height}
-                                        </Text>
-                                    </Box>
-                                </Grid>
-                            </Box>
-
-                            {/* Comments */}
-                            <Box p={6} border={`1px solid ${borderColor}`} borderRadius="lg" bg={bgColor}>
-                                <Text fontSize="xl" fontWeight="bold" mb={4} color={textColor}>
-                                    💬 Comments ({threat.comments?.length || 0})
-                                </Text>
-                                {threat.comments && threat.comments.length > 0 ? (
-                                    <VStack spacing={3} align="stretch" maxH="200px" overflowY="auto">
-                                        {threat.comments.map((comment) => (
-                                            <Box key={comment.id} p={3} bg="gray.100" _dark={{ bg: "gray.700" }} borderRadius="md">
-                                                <Text fontSize="sm" color={textColor}>{comment.comment}</Text>
-                                                <Text fontSize="xs" color="gray.500" mt={1}>
-                                                    by {comment.user_name} • {formatTimestamp(comment.timestamp)}
-                                                </Text>
-                                            </Box>
-                                        ))}
-                                    </VStack>
-                                ) : (
-                                    <Text color="gray.500" fontStyle="italic">No comments available</Text>
-                                )}
-                            </Box>
-                        </VStack>
-
-                        {/* Right Column - Detection Frame */}
-                        <VStack spacing={6} align="stretch">
-                            <Box p={6} border={`1px solid ${borderColor}`} borderRadius="lg" bg={bgColor}>
-                                <Text fontSize="xl" fontWeight="bold" mb={4} color={textColor}>
-                                    📸 Detection Frame
-                                </Text>
+                            {/* Detection Frame */}
+                            <Box p={4} border="1px solid" borderColor="gray.200" borderRadius="lg">
+                                <Text fontSize="lg" fontWeight="bold" mb={3}>📸 Detection Frame</Text>
 
                                 {frameLoading && (
                                     <Box textAlign="center" py={8}>
                                         <Spinner size="lg" />
-                                        <Text mt={4} color={textColor}>Loading detection frame...</Text>
+                                        <Text mt={4}>Loading detection frame...</Text>
                                     </Box>
                                 )}
 
                                 {frameError && (
                                     <Alert status="warning">
                                         <AlertIcon />
-                                        <VStack align="start" spacing={1}>
-                                            <Text>Detection frame not available</Text>
-                                            <Text fontSize="sm">
-                                                This detection was recorded before frame storage was implemented
-                                            </Text>
-                                        </VStack>
+                                        <Text>Detection frame not available</Text>
                                     </Alert>
                                 )}
 
@@ -252,28 +196,14 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
                                             src={`data:image/jpeg;base64,${frameData}`}
                                             alt="Detection Frame"
                                             maxW="100%"
-                                            maxH="400px"
+                                            maxH="300px"
                                             objectFit="contain"
-                                            border={`2px solid ${borderColor}`}
+                                            border="1px solid"
+                                            borderColor="gray.200"
                                             borderRadius="md"
-                                            fallback={
-                                                <Box
-                                                    w="100%"
-                                                    h="300px"
-                                                    bg="gray.200"
-                                                    _dark={{ bg: "gray.600" }}
-                                                    display="flex"
-                                                    alignItems="center"
-                                                    justifyContent="center"
-                                                    border={`1px solid ${borderColor}`}
-                                                    borderRadius="md"
-                                                >
-                                                    <Text color="gray.500">Failed to load image</Text>
-                                                </Box>
-                                            }
                                         />
                                         <Text fontSize="xs" color="gray.500" mt={2} textAlign="center">
-                                            Detection frame captured at {formatTimestamp(threat.timestamp)}
+                                            Frame captured at {formatTimestamp(threat.timestamp)}
                                         </Text>
                                     </Box>
                                 )}
@@ -281,17 +211,18 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
                                 {!frameData && !frameLoading && !frameError && (
                                     <Box
                                         w="100%"
-                                        h="300px"
+                                        h="200px"
                                         bg="gray.100"
                                         _dark={{ bg: "gray.700" }}
                                         display="flex"
                                         alignItems="center"
                                         justifyContent="center"
-                                        border={`1px dashed ${borderColor}`}
+                                        border="1px dashed"
+                                        borderColor="gray.300"
                                         borderRadius="md"
                                     >
                                         <VStack>
-                                            <Text fontSize="4xl">📷</Text>
+                                            <Text fontSize="3xl">📷</Text>
                                             <Text color="gray.500">No frame data available</Text>
                                         </VStack>
                                     </Box>
@@ -299,52 +230,65 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
                             </Box>
 
                             {/* Action Buttons */}
-                            <VStack spacing={4}>
+                            <HStack spacing={4}>
                                 <Button
                                     colorScheme="orange"
-                                    size="lg"
-                                    width="100%"
                                     onClick={fetchFrameData}
                                     isLoading={frameLoading}
+                                    flex={1}
                                 >
-                                    🔄 Refresh Frame Data
+                                    🔄 Refresh Frame
                                 </Button>
-
                                 <Button
-                                    colorScheme="red"
-                                    variant="outline"
-                                    size="lg"
-                                    width="100%"
+                                    colorScheme="green"
                                     onClick={() => {
                                         toast({
                                             title: "Alert Acknowledged",
-                                            description: "Threat has been acknowledged by security personnel",
+                                            description: "Threat acknowledged by security personnel",
                                             status: "info",
                                             duration: 3000,
                                             isClosable: true,
                                         });
                                     }}
+                                    flex={1}
                                 >
-                                    ✅ Acknowledge Threat
+                                    ✅ Acknowledge
                                 </Button>
-                            </VStack>
+                            </HStack>
                         </VStack>
-                    </Grid>
-                </ModalBody>
+                    </ModalBody>
 
-                <ModalFooter bg="gray.50" _dark={{ bg: "gray.800" }} py={6}>
-                    <HStack spacing={4}>
-                        <Text fontSize="sm" color="gray.500">
-                            Detection ID: {threat.id}
-                        </Text>
-                        <Button colorScheme="gray" onClick={onClose} size="lg">
-                            Close Expanded View
-                        </Button>
-                    </HStack>
-                </ModalFooter>
-            </ModalContent>
-        </Modal>
-    );
+                    <ModalFooter>
+                        <HStack spacing={4} width="100%" justify="space-between">
+                            <Text fontSize="sm" color="gray.500">
+                                Detection ID: {threat.id || threat.detection_id || 'Unknown'}
+                            </Text>
+                            <Button colorScheme="gray" onClick={onClose}>
+                                Close
+                            </Button>
+                        </HStack>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+        );
+    } catch (error) {
+        console.error('ExpandThreatModal render error:', error);
+        return (
+            <Modal isOpen={isOpen} onClose={onClose} size="sm">
+                <ModalOverlay />
+                <ModalContent>
+                    <ModalHeader color="red.500">Error</ModalHeader>
+                    <ModalBody>
+                        <Text>Unable to display threat details. Please try again.</Text>
+                        <Text fontSize="sm" color="gray.500" mt={2}>Error: {String(error)}</Text>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button onClick={onClose}>Close</Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
+        );
+    }
 };
 
 export default ExpandThreatModal; 

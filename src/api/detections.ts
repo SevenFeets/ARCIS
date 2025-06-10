@@ -2,6 +2,7 @@ import api from './axios';
 
 export interface Detection {
     id: number;
+    detection_id?: number; // Some endpoints return detection_id instead of id
     weapon_type: string;
     confidence: number;
     threat_level: number;

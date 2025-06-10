@@ -18,8 +18,7 @@ import {
     Spinner,
     Alert,
     AlertIcon,
-    Progress,
-    useToast
+    Progress
 } from '@chakra-ui/react';
 import { detectionsAPI } from '../../api/detections';
 
@@ -33,30 +32,36 @@ const SystemMetricsModal: React.FC<SystemMetricsModalProps> = ({ isOpen, onClose
     const [metrics, setMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const toast = useToast();
 
     useEffect(() => {
         if (isOpen && detectionId) {
             fetchMetrics();
         }
+        // Reset state when modal closes
+        if (!isOpen) {
+            setMetrics(null);
+            setError(null);
+        }
     }, [isOpen, detectionId]);
 
     const fetchMetrics = async () => {
+        if (!detectionId) {
+            setError('No detection ID provided');
+            return;
+        }
+
         setLoading(true);
         setError(null);
         try {
+            console.log('Fetching metrics for detection ID:', detectionId);
             const response = await detectionsAPI.getSystemMetrics(detectionId);
+            console.log('Metrics response:', response.data);
             setMetrics(response.data.metrics);
         } catch (error) {
-            const errorMessage = 'Failed to load system metrics';
+            console.error('Error fetching metrics:', error);
+            const errorMessage = 'Failed to load system metrics - this detection may not have metrics data';
             setError(errorMessage);
-            toast({
-                title: 'Error',
-                description: errorMessage,
-                status: 'error',
-                duration: 3000,
-                isClosable: true,
-            });
+            // Don't show toast for missing metrics, just show in modal
         } finally {
             setLoading(false);
         }

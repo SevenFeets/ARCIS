@@ -19,7 +19,7 @@ import {
 } from '@chakra-ui/react'
 import { useAuth } from '../context/AuthContext'
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link as RouterLink } from 'react-router-dom'
 
 const ProfilePage = () => {
     const { currentUser, updateUserEmail, updateUserPassword, deleteAccount } = useAuth()
@@ -182,6 +182,35 @@ const ProfilePage = () => {
                         >
                             Delete Account
                         </Button>
+                    </Box>
+
+                    <Divider my={6} />
+
+                    <Box>
+                        <Heading as="h2" size="md" color="purple.500" mb={4}>🧪 Developer Tools</Heading>
+                        <VStack spacing={3} align="stretch">
+                            <Text fontSize="sm" color="gray.600">
+                                These tools are available for testing authentication functionality
+                            </Text>
+                            <Button
+                                as={RouterLink}
+                                to="/auth-test"
+                                colorScheme="purple"
+                                size="md"
+                                alignSelf="flex-start"
+                            >
+                                🔧 Run Authentication Tests
+                            </Button>
+                            <Button
+                                as={RouterLink}
+                                to="/quick-api-test"
+                                colorScheme="blue"
+                                size="md"
+                                alignSelf="flex-start"
+                            >
+                                🛠️ Quick API Test
+                            </Button>
+                        </VStack>
                     </Box>
                 </VStack>
             </Container>

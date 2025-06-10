@@ -4,6 +4,7 @@ import { detectionsAPI, Detection, ManualDetection } from '../api/detections';
 import SystemMetricsModal from '../components/dashboard/SystemMetricsModal';
 import ExpandThreatModal from '../components/dashboard/ExpandThreatModal';
 
+
 const DashboardPage: React.FC = () => {
     const [, setDetections] = useState<Detection[]>([]);
     const [, setManualDetections] = useState<ManualDetection[]>([]);
@@ -87,11 +88,13 @@ const DashboardPage: React.FC = () => {
 
     // Handler functions for modals
     const handleShowMetrics = (threatId: number) => {
+        console.log('Opening metrics modal for threat ID:', threatId);
         setSelectedThreatForMetrics(threatId);
         onMetricsOpen();
     };
 
     const handleExpandThreat = (threat: Detection) => {
+        console.log('Opening expand modal for threat:', threat);
         setSelectedThreatForExpand(threat);
         onExpandOpen();
     };
@@ -278,66 +281,70 @@ const DashboardPage: React.FC = () => {
                     </div>
                 ) : (
                     <div>
-                        {threats.map((threat, index) => (
-                            <div
-                                key={`threat-${threat.id || index}`}
-                                style={{
-                                    border: `2px solid ${threatBorder}`,
-                                    backgroundColor: threatCardBg,
-                                    margin: '10px 0',
-                                    padding: '15px',
-                                    borderRadius: '8px'
-                                }}
-                            >
-                                <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px', color: threatTitle }}>
-                                    {threat.weapon_type} - Threat Level {threat.threat_level}
-                                </div>
-                                <div style={{ marginBottom: '5px', color: textColor }}>
-                                    📍 <strong>Location:</strong> {threat.location || 'Unknown'}
-                                </div>
-                                <div style={{ marginBottom: '5px', color: textColor }}>
-                                    🕒 <strong>Time:</strong> {new Date(threat.timestamp).toLocaleString()}
-                                </div>
-                                <div style={{ marginBottom: '5px', color: textColor }}>
-                                    📱 <strong>Device:</strong> {threat.device} ({threat.device_id})
-                                </div>
-                                <div style={{ color: textColor }}>
-                                    🎯 <strong>Confidence:</strong> {threat.confidence}%
-                                </div>
+                        {threats.map((threat, index) => {
+                            const threatId = threat.detection_id || threat.id;
+                            console.log('Rendering threat:', { threat, threatId });
+                            return (
+                                <div
+                                    key={`threat-${threatId || index}`}
+                                    style={{
+                                        border: `2px solid ${threatBorder}`,
+                                        backgroundColor: threatCardBg,
+                                        margin: '10px 0',
+                                        padding: '15px',
+                                        borderRadius: '8px'
+                                    }}
+                                >
+                                    <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px', color: threatTitle }}>
+                                        {threat.weapon_type} - Threat Level {threat.threat_level}
+                                    </div>
+                                    <div style={{ marginBottom: '5px', color: textColor }}>
+                                        📍 <strong>Location:</strong> {threat.location || 'Unknown'}
+                                    </div>
+                                    <div style={{ marginBottom: '5px', color: textColor }}>
+                                        🕒 <strong>Time:</strong> {new Date(threat.timestamp).toLocaleString()}
+                                    </div>
+                                    <div style={{ marginBottom: '5px', color: textColor }}>
+                                        📱 <strong>Device:</strong> {threat.device} ({threat.device_id})
+                                    </div>
+                                    <div style={{ color: textColor }}>
+                                        🎯 <strong>Confidence:</strong> {threat.confidence}%
+                                    </div>
 
-                                {/* Action Buttons */}
-                                <div style={{ marginTop: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                                    <button
-                                        onClick={() => handleShowMetrics(threat.id)}
-                                        style={{
-                                            padding: '8px 16px',
-                                            backgroundColor: '#007bff',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '5px',
-                                            cursor: 'pointer',
-                                            fontSize: '14px'
-                                        }}
-                                    >
-                                        📊 System Metrics
-                                    </button>
-                                    <button
-                                        onClick={() => handleExpandThreat(threat)}
-                                        style={{
-                                            padding: '8px 16px',
-                                            backgroundColor: '#28a745',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '5px',
-                                            cursor: 'pointer',
-                                            fontSize: '14px'
-                                        }}
-                                    >
-                                        🔍 Expand Threat
-                                    </button>
+                                    {/* Action Buttons */}
+                                    <div style={{ marginTop: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                        <button
+                                            onClick={() => handleShowMetrics(threatId)}
+                                            style={{
+                                                padding: '8px 16px',
+                                                backgroundColor: '#007bff',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '5px',
+                                                cursor: 'pointer',
+                                                fontSize: '14px'
+                                            }}
+                                        >
+                                            📊 System Metrics
+                                        </button>
+                                        <button
+                                            onClick={() => handleExpandThreat({ ...threat, id: threatId })}
+                                            style={{
+                                                padding: '8px 16px',
+                                                backgroundColor: '#28a745',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '5px',
+                                                cursor: 'pointer',
+                                                fontSize: '14px'
+                                            }}
+                                        >
+                                            🔍 Expand Threat
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>
@@ -355,19 +362,29 @@ const DashboardPage: React.FC = () => {
                 {renderThreatsList()}
             </div>
 
+
+
             {/* Modal Components */}
-            {selectedThreatForMetrics && (
+            {selectedThreatForMetrics && isMetricsOpen && (
                 <SystemMetricsModal
                     isOpen={isMetricsOpen}
-                    onClose={onMetricsClose}
+                    onClose={() => {
+                        console.log('Closing metrics modal');
+                        setSelectedThreatForMetrics(null);
+                        onMetricsClose();
+                    }}
                     detectionId={selectedThreatForMetrics}
                 />
             )}
 
-            {selectedThreatForExpand && (
+            {selectedThreatForExpand && isExpandOpen && (
                 <ExpandThreatModal
                     isOpen={isExpandOpen}
-                    onClose={onExpandClose}
+                    onClose={() => {
+                        console.log('Closing expand modal');
+                        setSelectedThreatForExpand(null);
+                        onExpandClose();
+                    }}
                     threat={selectedThreatForExpand}
                 />
             )}
