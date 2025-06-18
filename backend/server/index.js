@@ -67,9 +67,10 @@ const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
-    console.log(`Server is running on ${HOST}:${PORT}`);
+    console.log(`🚀 ARCIS Server is running on ${HOST}:${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Health check: http://${HOST}:${PORT}/api/health`);
+    console.log(`🛡️ ARCIS Weapon Detection System - Ready for global deployment!`);
 });
 
 
