@@ -6,10 +6,11 @@ import ExpandThreatModal from '../components/dashboard/ExpandThreatModal';
 
 
 const DashboardPage: React.FC = () => {
-    const [, setDetections] = useState<Detection[]>([]);
-    const [, setManualDetections] = useState<ManualDetection[]>([]);
+    const [detections, setDetections] = useState<Detection[]>([]);
+    const [manualDetections, setManualDetections] = useState<ManualDetection[]>([]);
     const [threats, setThreats] = useState<Detection[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<'threats' | 'recent' | 'analysis' | 'manual' | 'statistics'>('threats');
     const [stats, setStats] = useState({
         total: 0,
         threats: 0,
@@ -219,49 +220,280 @@ const DashboardPage: React.FC = () => {
         <div key="navigation-section" style={{ marginBottom: '20px' }}>
             <h2 style={{ fontSize: '24px', marginBottom: '15px', color: textColor }}>Dashboard Navigation</h2>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button style={{
-                    padding: '10px 15px',
-                    backgroundColor: buttonBg,
-                    border: `1px solid ${buttonBorder}`,
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    color: textColor
-                }}>
+                <button
+                    onClick={() => setActiveTab('recent')}
+                    style={{
+                        padding: '10px 15px',
+                        backgroundColor: activeTab === 'recent' ? '#007bff' : buttonBg,
+                        color: activeTab === 'recent' ? 'white' : textColor,
+                        border: `1px solid ${activeTab === 'recent' ? '#007bff' : buttonBorder}`,
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: activeTab === 'recent' ? 'bold' : 'normal'
+                    }}
+                >
                     📊 Recent Detections
                 </button>
-                <button style={{
-                    padding: '10px 15px',
-                    backgroundColor: buttonBg,
-                    border: `1px solid ${buttonBorder}`,
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    color: textColor
-                }}>
-                    🔍 Threat Analysis
+                <button
+                    onClick={() => setActiveTab('threats')}
+                    style={{
+                        padding: '10px 15px',
+                        backgroundColor: activeTab === 'threats' ? '#dc3545' : buttonBg,
+                        color: activeTab === 'threats' ? 'white' : textColor,
+                        border: `1px solid ${activeTab === 'threats' ? '#dc3545' : buttonBorder}`,
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: activeTab === 'threats' ? 'bold' : 'normal'
+                    }}
+                >
+                    🔍 High Priority Threats
                 </button>
-                <button style={{
-                    padding: '10px 15px',
-                    backgroundColor: buttonBg,
-                    border: `1px solid ${buttonBorder}`,
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    color: textColor
-                }}>
+                <button
+                    onClick={() => setActiveTab('manual')}
+                    style={{
+                        padding: '10px 15px',
+                        backgroundColor: activeTab === 'manual' ? '#9c27b0' : buttonBg,
+                        color: activeTab === 'manual' ? 'white' : textColor,
+                        border: `1px solid ${activeTab === 'manual' ? '#9c27b0' : buttonBorder}`,
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: activeTab === 'manual' ? 'bold' : 'normal'
+                    }}
+                >
                     📝 Manual Entries
                 </button>
-                <button style={{
-                    padding: '10px 15px',
-                    backgroundColor: buttonBg,
-                    border: `1px solid ${buttonBorder}`,
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    color: textColor
-                }}>
+                <button
+                    onClick={() => setActiveTab('statistics')}
+                    style={{
+                        padding: '10px 15px',
+                        backgroundColor: activeTab === 'statistics' ? '#28a745' : buttonBg,
+                        color: activeTab === 'statistics' ? 'white' : textColor,
+                        border: `1px solid ${activeTab === 'statistics' ? '#28a745' : buttonBorder}`,
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontWeight: activeTab === 'statistics' ? 'bold' : 'normal'
+                    }}
+                >
                     📈 Statistics
                 </button>
             </div>
         </div>
     );
+
+    // Render recent detections
+    const renderRecentDetections = () => (
+        <div key="recent-detections-section">
+            <h3 style={{ fontSize: '20px', marginBottom: '15px', color: textColor }}>
+                📊 Recent Detections ({detections.length})
+            </h3>
+            <div style={{
+                padding: '20px',
+                backgroundColor: sectionBg,
+                borderRadius: '8px',
+                border: `1px solid ${cardBorder}`
+            }}>
+                {detections.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#666', fontSize: '18px' }}>
+                        📭 No detections found
+                    </div>
+                ) : (
+                    <div>
+                        {detections.slice(0, 10).map((detection, index) => (
+                            <div
+                                key={`detection-${detection.id || index}`}
+                                style={{
+                                    border: `1px solid ${cardBorder}`,
+                                    backgroundColor: cardBg,
+                                    margin: '10px 0',
+                                    padding: '15px',
+                                    borderRadius: '8px'
+                                }}
+                            >
+                                <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px', color: textColor }}>
+                                    {detection.weapon_type} - Confidence: {detection.confidence}%
+                                </div>
+                                <div style={{ marginBottom: '5px', color: textColor }}>
+                                    📍 <strong>Location:</strong> {detection.location || 'Unknown'}
+                                </div>
+                                <div style={{ marginBottom: '5px', color: textColor }}>
+                                    🕒 <strong>Time:</strong> {new Date(detection.timestamp).toLocaleString()}
+                                </div>
+                                <div style={{ marginBottom: '5px', color: textColor }}>
+                                    📱 <strong>Device:</strong> {detection.device} ({detection.device_id})
+                                </div>
+                                <div style={{ color: textColor }}>
+                                    ⚠️ <strong>Threat Level:</strong> {detection.threat_level}
+                                </div>
+                            </div>
+                        ))}
+                        {detections.length > 10 && (
+                            <div style={{ textAlign: 'center', marginTop: '15px', color: textColor }}>
+                                ... and {detections.length - 10} more detections
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
+    // Render manual entries
+    const renderManualEntries = () => (
+        <div key="manual-entries-section">
+            <h3 style={{ fontSize: '20px', marginBottom: '15px', color: textColor }}>
+                📝 Manual Detection Entries ({manualDetections.length})
+            </h3>
+            <div style={{
+                padding: '20px',
+                backgroundColor: sectionBg,
+                borderRadius: '8px',
+                border: `1px solid ${cardBorder}`
+            }}>
+                {manualDetections.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#666', fontSize: '18px' }}>
+                        📋 No manual entries found
+                    </div>
+                ) : (
+                    <div>
+                        {manualDetections.map((entry, index) => (
+                            <div
+                                key={`manual-${entry.id || index}`}
+                                style={{
+                                    border: `1px solid #9c27b0`,
+                                    backgroundColor: cardBg,
+                                    margin: '10px 0',
+                                    padding: '15px',
+                                    borderRadius: '8px'
+                                }}
+                            >
+                                <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px', color: '#9c27b0' }}>
+                                    👮 {entry.weapon_type} - Manual Entry
+                                </div>
+                                <div style={{ marginBottom: '5px', color: textColor }}>
+                                    📍 <strong>Location:</strong> {entry.location}
+                                </div>
+                                <div style={{ marginBottom: '5px', color: textColor }}>
+                                    👮 <strong>Officer:</strong> {entry.officer_name}
+                                </div>
+                                <div style={{ marginBottom: '5px', color: textColor }}>
+                                    🕒 <strong>Time:</strong> {new Date(entry.timestamp).toLocaleString()}
+                                </div>
+                                <div style={{ marginBottom: '5px', color: textColor }}>
+                                    🎯 <strong>Confidence:</strong> {entry.confidence}%
+                                </div>
+                                {entry.description && (
+                                    <div style={{ marginTop: '10px', color: textColor }}>
+                                        📄 <strong>Description:</strong> {entry.description}
+                                    </div>
+                                )}
+                                {entry.notes && (
+                                    <div style={{ marginTop: '5px', color: textColor }}>
+                                        📝 <strong>Notes:</strong> {entry.notes}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
+    // Render statistics view
+    const renderStatistics = () => {
+        const weaponStats = detections.reduce((acc: any, detection) => {
+            acc[detection.weapon_type] = (acc[detection.weapon_type] || 0) + 1;
+            return acc;
+        }, {});
+
+        const threatLevelStats = detections.reduce((acc: any, detection) => {
+            if (detection.threat_level >= 8) acc.high++;
+            else if (detection.threat_level >= 5) acc.medium++;
+            else acc.low++;
+            return acc;
+        }, { high: 0, medium: 0, low: 0 });
+
+        return (
+            <div key="statistics-section">
+                <h3 style={{ fontSize: '20px', marginBottom: '15px', color: textColor }}>
+                    📈 Detection Statistics
+                </h3>
+                <div style={{
+                    padding: '20px',
+                    backgroundColor: sectionBg,
+                    borderRadius: '8px',
+                    border: `1px solid ${cardBorder}`
+                }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+                        {/* Weapon Type Stats */}
+                        <div style={{ backgroundColor: cardBg, padding: '15px', borderRadius: '8px', border: `1px solid ${cardBorder}` }}>
+                            <h4 style={{ fontSize: '16px', marginBottom: '10px', color: textColor }}>🔫 Weapon Types</h4>
+                            {Object.entries(weaponStats).map(([type, count]) => (
+                                <div key={type} style={{ marginBottom: '8px', color: textColor }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span>{type}:</span>
+                                        <span style={{ fontWeight: 'bold' }}>{count as number}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Threat Level Stats */}
+                        <div style={{ backgroundColor: cardBg, padding: '15px', borderRadius: '8px', border: `1px solid ${cardBorder}` }}>
+                            <h4 style={{ fontSize: '16px', marginBottom: '10px', color: textColor }}>⚠️ Threat Levels</h4>
+                            <div style={{ marginBottom: '8px', color: textColor }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#dc3545' }}>High (8-10):</span>
+                                    <span style={{ fontWeight: 'bold' }}>{threatLevelStats.high}</span>
+                                </div>
+                            </div>
+                            <div style={{ marginBottom: '8px', color: textColor }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#ffc107' }}>Medium (5-7):</span>
+                                    <span style={{ fontWeight: 'bold' }}>{threatLevelStats.medium}</span>
+                                </div>
+                            </div>
+                            <div style={{ marginBottom: '8px', color: textColor }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: '#28a745' }}>Low (1-4):</span>
+                                    <span style={{ fontWeight: 'bold' }}>{threatLevelStats.low}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Summary Stats */}
+                        <div style={{ backgroundColor: cardBg, padding: '15px', borderRadius: '8px', border: `1px solid ${cardBorder}` }}>
+                            <h4 style={{ fontSize: '16px', marginBottom: '10px', color: textColor }}>📊 Summary</h4>
+                            <div style={{ marginBottom: '8px', color: textColor }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Total Detections:</span>
+                                    <span style={{ fontWeight: 'bold' }}>{stats.total}</span>
+                                </div>
+                            </div>
+                            <div style={{ marginBottom: '8px', color: textColor }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Active Threats:</span>
+                                    <span style={{ fontWeight: 'bold', color: '#dc3545' }}>{stats.threats}</span>
+                                </div>
+                            </div>
+                            <div style={{ marginBottom: '8px', color: textColor }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Manual Entries:</span>
+                                    <span style={{ fontWeight: 'bold', color: '#9c27b0' }}>{stats.manual}</span>
+                                </div>
+                            </div>
+                            <div style={{ marginBottom: '8px', color: textColor }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span>Last Hour:</span>
+                                    <span style={{ fontWeight: 'bold', color: '#28a745' }}>{stats.lastHour}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     // Render threats list
     const renderThreatsList = () => (
@@ -351,6 +583,22 @@ const DashboardPage: React.FC = () => {
         </div>
     );
 
+    // Render content based on active tab
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case 'recent':
+                return renderRecentDetections();
+            case 'threats':
+                return renderThreatsList();
+            case 'manual':
+                return renderManualEntries();
+            case 'statistics':
+                return renderStatistics();
+            default:
+                return renderThreatsList();
+        }
+    };
+
     // Main render
     return (
         <Container maxW="container.xl" py={8}>
@@ -359,7 +607,7 @@ const DashboardPage: React.FC = () => {
                 {renderThreatAlert()}
                 {renderStatsGrid()}
                 {renderNavigationTabs()}
-                {renderThreatsList()}
+                {renderTabContent()}
             </div>
 
 

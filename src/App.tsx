@@ -14,6 +14,8 @@ import SimpleApiTest from './components/SimpleApiTest'
 import DashboardPage from './pages/DashboardPage'
 import ProjectOverviewPage from './pages/ProjectOverviewPage'
 import QuickApiTest from './components/debug/QuickApiTest'
+import DatabaseTestHook from './components/debug/DatabaseTestHook'
+import DetectionHooksTest from './components/debug/DetectionHooksTest'
 import AuthPage from './pages/AuthPage'
 
 function App() {
@@ -41,6 +43,8 @@ function App() {
           <Route path="/api-test" element={<ApiTest />} />
           <Route path="/simple-api-test" element={<SimpleApiTest />} />
           <Route path="/quick-api-test" element={<QuickApiTest />} />
+          <Route path="/db-test-hook" element={<DatabaseTestHook />} />
+          <Route path="/hooks-test" element={<DetectionHooksTest />} />
         </Routes>
       </Box>
       <Footer />
