@@ -1,0 +1,14 @@
+[variables]
+NODE_ENV = "production"
+
+[phases.setup]
+nixPkgs = ["nodejs-18_x", "npm-9_x"]
+
+[phases.install]
+cmds = ["cd backend/server && npm install --legacy-peer-deps"]
+
+[phases.build]
+cmds = ["cd backend/server && npm run build"]
+
+[start]
+cmd = "cd backend/server && npm start" 

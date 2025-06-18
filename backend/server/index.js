@@ -18,6 +18,22 @@ app.use(express.json()); // parse json bodies in the request
 const detectionsRouter = require('./routes/detections');
 
 // Routes
+app.get("/", (req, res) => {
+    res.json({
+        message: "ARCIS Weapon Detection System API",
+        version: "1.0.0",
+        status: "active",
+        endpoints: {
+            health: "/api/health",
+            detections: "/api/detections/all",
+            threats: "/api/detections/threats",
+            jetson: "/api/detections/jetson-detection",
+            raspberry: "/api/detections/raspberry-detection"
+        },
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.get("/api/health", (req, res) => {
     res.json({ message: "Server is running!", timestamp: new Date().toISOString() });
 });
@@ -27,8 +43,12 @@ app.use('/api/detections', detectionsRouter);
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+    console.log(`Server is running on ${HOST}:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Health check: http://${HOST}:${PORT}/api/health`);
 });
 
 
