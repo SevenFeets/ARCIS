@@ -20,9 +20,10 @@ const detectionsRouter = require('./routes/detections');
 // Routes
 app.get("/", (req, res) => {
     res.json({
-        message: "ARCIS Weapon Detection System API",
+        message: "🛡️ ARCIS Weapon Detection System API",
         version: "1.0.0",
-        status: "active",
+        status: "✅ ACTIVE",
+        description: "Advanced Real-time Comprehensive Intelligence System",
         endpoints: {
             health: "/api/health",
             detections: "/api/detections/all",
@@ -30,7 +31,27 @@ app.get("/", (req, res) => {
             jetson: "/api/detections/jetson-detection",
             raspberry: "/api/detections/raspberry-detection"
         },
+        deployment: {
+            platform: "Railway",
+            region: "EU West",
+            environment: "Production"
+        },
         timestamp: new Date().toISOString()
+    });
+});
+
+// API root endpoint
+app.get("/api", (req, res) => {
+    res.json({
+        message: "ARCIS API v1.0",
+        status: "active",
+        available_endpoints: [
+            "GET /api/health",
+            "GET /api/detections/all",
+            "GET /api/detections/threats",
+            "POST /api/detections/jetson-detection",
+            "POST /api/detections/raspberry-detection"
+        ]
     });
 });
 
