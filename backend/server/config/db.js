@@ -15,6 +15,10 @@ const dbConfig = {
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+    // SSL configuration for Supabase
+    ssl: process.env.NODE_ENV === 'production' || process.env.DB_HOST?.includes('supabase.co') || process.env.DB_HOST?.includes('supabase.com') ? {
+        rejectUnauthorized: false
+    } : false
 };
 
 // Log the configuration (without password) for debugging
