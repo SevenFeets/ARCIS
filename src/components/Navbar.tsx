@@ -171,10 +171,20 @@ const Navbar = () => {
                                 />
                             </MenuButton>
                             <MenuList>
+                                <MenuItem as={RouterLink} to="/dashboard">🛡️ Dashboard</MenuItem>
                                 <MenuItem as={RouterLink} to="/profile">Profile</MenuItem>
                                 <MenuItem onClick={handleLogout} icon={<FiLogOut />}>Logout</MenuItem>
                                 {currentUser && (
                                     <MenuItem as={RouterLink} to="/auth-test">Auth Tester</MenuItem>
+                                )}
+                                {currentUser && (
+                                    <MenuItem as={RouterLink} to="/quick-api-test">🛠️ Quick API Test</MenuItem>
+                                )}
+                                {currentUser && (
+                                    <MenuItem as={RouterLink} to="/db-test-hook">🗄️ DB Test Hook</MenuItem>
+                                )}
+                                {currentUser && (
+                                    <MenuItem as={RouterLink} to="/hooks-test">🧪 All Hooks Test</MenuItem>
                                 )}
                             </MenuList>
                         </Menu>

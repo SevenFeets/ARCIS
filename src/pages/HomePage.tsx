@@ -5,6 +5,7 @@ import {
     Text,
     Button,
     HStack,
+    VStack,
     SimpleGrid,
     Card,
     CardBody,
@@ -17,8 +18,7 @@ import {
     TabPanels,
     Tabs
 } from '@chakra-ui/react'
-import { FormControl, FormLabel } from '@chakra-ui/form-control'
-import { Input } from '@chakra-ui/input'
+
 import { Link as RouterLink } from 'react-router-dom'
 
 const HomePage = () => {
@@ -31,15 +31,40 @@ const HomePage = () => {
                         <Heading as="h1" size="2xl" mb={4}>
                             Eagle Sight Technology
                         </Heading>
-                        <Text fontSize="xl" maxW="container.md" mx="auto" mb={8}>
-                            This is a brief description of your final graduate project. Explain what it does and why it matters.
+                        <Text fontSize="xl" maxW="container.md" mx="auto" mb={8} lineHeight={1.8}>
+                            ARCIS (Autonomous Real-time Critical Infrastructure Security) is an advanced AI-powered weapon detection system
+                            that uses computer vision and machine learning to identify threats in real-time. Our intelligent platform processes
+                            live video feeds from multiple camera sources, providing instant alerts to security personnel through a comprehensive
+                            dashboard interface. Built with cutting-edge technology including YOLO object detection, IoT integration, and cloud
+                            infrastructure, ARCIS revolutionizes security monitoring for critical facilities and public spaces.
                         </Text>
                         <HStack gap={4} justify="center">
-                            <Button colorScheme="blue" size="lg">
-                                Get Started
+                            <Button
+                                as={RouterLink}
+                                to="/auth?from=home&action=get-started"
+                                colorScheme="blue"
+                                size="lg"
+                                _hover={{
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: 'lg'
+                                }}
+                            >
+                                🚀 Get Started
                             </Button>
-                            <Button variant="outline" size="lg">
-                                Learn More
+                            <Button
+                                as={RouterLink}
+                                to="/articles"
+                                variant="outline"
+                                size="lg"
+                                _hover={{
+                                    bg: 'green.500',
+                                    color: 'white',
+                                    borderColor: 'green.500',
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: 'lg'
+                                }}
+                            >
+                                📚 Learn More
                             </Button>
                         </HStack>
                     </Flex>
@@ -54,9 +79,18 @@ const HomePage = () => {
                     </Heading>
                     <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10}>
                         {[
-                            { title: 'Feature 1', description: 'Description of feature 1' },
-                            { title: 'Feature 2', description: 'Description of feature 2' },
-                            { title: 'Feature 3', description: 'Description of feature 3' },
+                            {
+                                title: '🎯 AI-Powered Detection',
+                                description: 'Advanced YOLO-based computer vision algorithms detect weapons and threats in real-time with high accuracy and minimal false positives.'
+                            },
+                            {
+                                title: '⚡ Real-time Monitoring',
+                                description: 'Live video feed processing from multiple camera sources with instant alert notifications to security personnel and emergency responders.'
+                            },
+                            {
+                                title: '📊 Comprehensive Dashboard',
+                                description: 'Intuitive web interface displaying threat analytics, system metrics, device status, and historical detection data with interactive visualizations.'
+                            },
                         ].map((feature, index) => (
                             <Card key={index}>
                                 <CardHeader>
@@ -66,7 +100,18 @@ const HomePage = () => {
                                     <Text>{feature.description}</Text>
                                 </CardBody>
                                 <CardFooter>
-                                    <Button variant="ghost">Learn more</Button>
+                                    <Button
+                                        as={RouterLink}
+                                        to="/project-overview"
+                                        variant="ghost"
+                                        colorScheme="blue"
+                                        _hover={{
+                                            bg: 'blue.50',
+                                            transform: 'translateY(-1px)'
+                                        }}
+                                    >
+                                        Learn more →
+                                    </Button>
                                 </CardFooter>
                             </Card>
                         ))}
@@ -77,63 +122,99 @@ const HomePage = () => {
             {/* Call to Action */}
             <Box py={16} textAlign="center">
                 <Container maxW="container.md">
-                    <Heading mb={4}>Ready to Get Started?</Heading>
+                    <Heading mb={4}>🛡️ Secure Your Facility with ARCIS</Heading>
                     <Text fontSize="lg" mb={8}>
-                        Join thousands of users who are already benefiting from our platform.
+                        Experience the future of intelligent security monitoring. Join security professionals who trust ARCIS for critical infrastructure protection.
                     </Text>
-                    <Button colorScheme="blue" size="lg">
-                        Sign Up Now
+                    <Button
+                        as={RouterLink}
+                        to="/auth?from=home&action=view-dashboard"
+                        colorScheme="blue"
+                        size="lg"
+                        _hover={{
+                            transform: 'translateY(-2px)',
+                            boxShadow: 'xl'
+                        }}
+                    >
+                        🚀 View Live Dashboard
                     </Button>
                 </Container>
             </Box>
 
-            {/* Login Area */}
+            {/* Access Account Area */}
             <Box py={16} bg="gray.50" _dark={{ bg: 'gray.900' }}>
                 <Container maxW="container.md">
                     <Heading mb={8} textAlign="center">Access Your Account</Heading>
-                    <LoginArea />
+                    <AccessAccountArea />
                 </Container>
             </Box>
 
-            <Container maxW="container.xl" centerContent py={8}>
-                <Flex direction="column" align="center">
-                    <Heading size="md" mb={4}>Authentication Testing</Heading>
-                    <Button
-                        as={RouterLink}
-                        to="/auth-test"
-                        colorScheme="purple"
-                        size="lg"
-                        mb={8}
-                    >
-                        Run Authentication Tests
-                    </Button>
-                </Flex>
-            </Container>
+
         </Box>
     )
 }
 
-function LoginArea() {
+function AccessAccountArea() {
     return (
-        <Box p={4} maxWidth="500px" mx="auto" bg="white" _dark={{ bg: 'gray.800' }} borderRadius="lg" shadow="md">
+        <Box p={6} maxWidth="500px" mx="auto" bg="white" _dark={{ bg: 'gray.800' }} borderRadius="lg" shadow="md">
             <Tabs variant="enclosed" colorScheme="blue" isFitted>
                 <TabList>
-                    <Tab>Login</Tab>
-                    <Tab>Register</Tab>
+                    <Tab>Quick Access</Tab>
+                    <Tab>Access to Account</Tab>
                 </TabList>
 
                 <TabPanels>
                     <TabPanel>
-                        {/* Login form content */}
-                        <Box pt={4}>
-                            <LoginForm />
+                        {/* Quick information */}
+                        <Box pt={4} textAlign="center">
+                            <Text mb={4} color="gray.600">
+                                Get quick access to ARCIS features
+                            </Text>
+                            <VStack spacing={3}>
+                                <Button
+                                    as={RouterLink}
+                                    to="/project-overview"
+                                    colorScheme="blue"
+                                    size="lg"
+                                    width="full"
+                                >
+                                    📋 View Project Overview
+                                </Button>
+                                <Button
+                                    as={RouterLink}
+                                    to="/about"
+                                    variant="outline"
+                                    size="lg"
+                                    width="full"
+                                >
+                                    ℹ️ Learn About ARCIS
+                                </Button>
+                            </VStack>
                         </Box>
                     </TabPanel>
 
                     <TabPanel>
-                        {/* Registration form content */}
-                        <Box pt={4}>
-                            <RegisterForm />
+                        {/* Account access */}
+                        <Box pt={4} textAlign="center">
+                            <Text mb={4} color="gray.600">
+                                Sign in to your account or create a new one to access the dashboard
+                            </Text>
+                            <VStack spacing={3}>
+                                <Button
+                                    as={RouterLink}
+                                    to="/auth"
+                                    colorScheme="green"
+                                    size="lg"
+                                    width="full"
+                                >
+                                    🔐 Sign In / Sign Up
+                                </Button>
+                                <Text fontSize="sm" color="gray.500">
+                                    Already have an account? Click above to sign in.
+                                    <br />
+                                    New to ARCIS? Create your account in seconds.
+                                </Text>
+                            </VStack>
                         </Box>
                     </TabPanel>
                 </TabPanels>
@@ -142,48 +223,6 @@ function LoginArea() {
     )
 }
 
-function LoginForm() {
-    return (
-        <Flex direction="column" gap={4}>
-            <FormControl>
-                <FormLabel>Email</FormLabel>
-                <Input type="email" placeholder="your.email@example.com" />
-            </FormControl>
-            <FormControl>
-                <FormLabel>Password</FormLabel>
-                <Input type="password" placeholder="********" />
-            </FormControl>
-            <Button colorScheme="blue" width="full" mt={2}>
-                Login
-            </Button>
-        </Flex>
-    )
-}
 
-function RegisterForm() {
-    return (
-        <Flex direction="column" gap={4}>
-            <FormControl>
-                <FormLabel>Name</FormLabel>
-                <Input placeholder="Your name" />
-            </FormControl>
-            <FormControl>
-                <FormLabel>Email</FormLabel>
-                <Input type="email" placeholder="your.email@example.com" />
-            </FormControl>
-            <FormControl>
-                <FormLabel>Password</FormLabel>
-                <Input type="password" placeholder="********" />
-            </FormControl>
-            <FormControl>
-                <FormLabel>Confirm Password</FormLabel>
-                <Input type="password" placeholder="********" />
-            </FormControl>
-            <Button colorScheme="blue" width="full" mt={2}>
-                Register
-            </Button>
-        </Flex>
-    )
-}
 
 export default HomePage 
