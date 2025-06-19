@@ -1,0 +1,44 @@
+{
+  "name": "arcis-backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "build": "echo 'Build completed'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "arcis",
+    "weapon-detection",
+    "security"
+  ],
+  "author": "",
+  "license": "ISC",
+  "description": "ARCIS Weapon Detection System Backend",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "axios": "^1.6.0",
+    "bcrypt": "^5.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.0",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.0",
+    "express-validator": "^7.0.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.0",
+    "socket.io": "^4.7.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "overrides": {
+    "express": "^4.18.2"
+  }
+}
