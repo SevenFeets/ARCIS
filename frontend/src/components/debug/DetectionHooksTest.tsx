@@ -5,9 +5,6 @@ import {
     VStack,
     Text,
     Badge,
-    Alert,
-    AlertIcon,
-    Spinner,
     HStack,
     Card,
     CardHeader,
@@ -17,10 +14,7 @@ import {
     Select,
     Textarea,
     Input,
-    FormControl,
-    FormLabel,
     useToast,
-    Divider,
     Image
 } from '@chakra-ui/react';
 import {
@@ -33,7 +27,6 @@ import {
     useCreateManualDetection,
     useAddComment,
     useDeleteDetection,
-    useDetectionMetrics,
     useDetectionFrame
 } from '../../hooks/useDetections';
 
@@ -61,7 +54,7 @@ const DetectionHooksTest: React.FC = () => {
     const createManual = useCreateManualDetection();
     const addComment = useAddComment();
     const deleteDetection = useDeleteDetection();
-    const metrics = useDetectionMetrics(selectedDetectionId, false);
+    // const metrics = useDetectionMetrics(selectedDetectionId, false);
     const frame = useDetectionFrame(selectedDetectionId, false);
 
     const weaponTypes = ['Knife', 'Pistol', 'weapon', 'rifle'];
