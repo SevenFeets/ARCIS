@@ -62,7 +62,7 @@ const Navbar = () => {
                 {/* Logo in navbar */}
                 <Flex align="center">
                     <Image
-                        src="/src/images/ARCIS_logo.jpg"
+                        src="/ARCIS_logo.jpg"
                         alt="ARCIS Logo"
                         height="80px"
                         mr={3}
