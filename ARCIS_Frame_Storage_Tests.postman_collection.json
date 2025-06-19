@@ -1,0 +1,250 @@
+{
+    "info": {
+        "name": "ARCIS Frame Storage Tests",
+        "description": "Test collection for ARCIS Frame Storage and System Metrics features",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Health Check",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5000/api/detections/test",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "api",
+                        "detections",
+                        "test"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "2. Create Detection with Frame Data",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"object_type\": \"Knife\",\n  \"confidence\": 0.89,\n  \"bounding_box\": {\n    \"x\": 100,\n    \"y\": 150,\n    \"width\": 50,\n    \"height\": 75\n  },\n  \"device_id\": \"test-jetson-001\",\n  \"image_path\": \"/test/frame.jpg\",\n  \"metadata\": {\n    \"device_type\": \"jetson_nano\",\n    \"test_data\": true\n  },\n  \"frame_data\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\",\n  \"system_metrics\": {\n    \"cpu_usage\": 45.2,\n    \"gpu_usage\": 67.8,\n    \"ram_usage\": 52.1,\n    \"cpu_temp\": 65.5,\n    \"gpu_temp\": 72.3,\n    \"cpu_voltage\": 1.2,\n    \"gpu_voltage\": 1.1,\n    \"network_status\": \"Connected\",\n    \"network_speed\": 100,\n    \"network_signal_strength\": -45,\n    \"disk_usage\": 75.3,\n    \"detection_latency\": 125,\n    \"distance_to_detection\": 5.2,\n    \"database_status\": \"Connected\",\n    \"alert_played\": true\n  }\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:5000/api/detections/incoming",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "api",
+                        "detections",
+                        "incoming"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "3. Get All Detections",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5000/api/detections/all",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "api",
+                        "detections",
+                        "all"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "4. Get System Metrics (Replace ID)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5000/api/detections/44/metrics",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "api",
+                        "detections",
+                        "44",
+                        "metrics"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "5. Get Detection Frame (Replace ID)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5000/api/detections/44/frame",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "api",
+                        "detections",
+                        "44",
+                        "frame"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "6. Test Jetson Detection",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"detectedObjects\": [\n    {\n      \"class\": 0,\n      \"label\": \"knife\",\n      \"confidence\": 0.85,\n      \"bbox\": [120, 180, 60, 90]\n    }\n  ],\n  \"frame\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\",\n  \"systemMetrics\": {\n    \"cpu_usage\": 52.1,\n    \"gpu_usage\": 78.3,\n    \"ram_usage\": 63.2,\n    \"cpu_temp\": 68.2,\n    \"gpu_temp\": 75.8,\n    \"network_status\": \"Connected\",\n    \"detection_latency\": 135,\n    \"alert_played\": false\n  },\n  \"timestamp\": \"2024-01-15T11:00:00Z\",\n  \"deviceId\": \"jetson-nano-001\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:5000/api/detections/jetson-detection",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "api",
+                        "detections",
+                        "jetson-detection"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "7. Test Raspberry Pi Detection",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"cloudVisionResults\": [\n    {\n      \"description\": \"weapon\",\n      \"score\": 0.92,\n      \"boundingPoly\": {\n        \"vertices\": [\n          {\"x\": 100, \"y\": 120},\n          {\"x\": 200, \"y\": 120},\n          {\"x\": 200, \"y\": 220},\n          {\"x\": 100, \"y\": 220}\n        ]\n      }\n    }\n  ],\n  \"frame\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==\",\n  \"systemMetrics\": {\n    \"cpu_usage\": 38.5,\n    \"ram_usage\": 45.7,\n    \"cpu_temp\": 55.3,\n    \"network_status\": \"Connected\",\n    \"network_speed\": 50,\n    \"detection_latency\": 95,\n    \"alert_played\": true\n  },\n  \"timestamp\": \"2024-01-15T11:15:00Z\",\n  \"deviceId\": \"rpi-cloud-002\"\n}"
+                },
+                "url": {
+                    "raw": "http://localhost:5000/api/detections/raspberry-detection",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "api",
+                        "detections",
+                        "raspberry-detection"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "8. Get Threats (With Frame Data)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5000/api/detections/threats",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "api",
+                        "detections",
+                        "threats"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "9. Test Error - Non-existent Detection Frame",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5000/api/detections/99999/frame",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "api",
+                        "detections",
+                        "99999",
+                        "frame"
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "10. Test Error - Non-existent Detection Metrics",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "http://localhost:5000/api/detections/99999/metrics",
+                    "protocol": "http",
+                    "host": [
+                        "localhost"
+                    ],
+                    "port": "5000",
+                    "path": [
+                        "api",
+                        "detections",
+                        "99999",
+                        "metrics"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
+}
