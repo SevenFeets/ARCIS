@@ -38,6 +38,8 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
 
     // Add console log for debugging
     console.log('ExpandThreatModal render:', { isOpen, threat });
+    console.log('Threat detection_frame_data:', threat?.detection_frame_data ? 'Present' : 'Missing');
+    console.log('Frame data length:', threat?.detection_frame_data?.length || 0);
 
     // Theme colors
     const bgColor = useColorModeValue('#ffffff', '#2D3748');
@@ -62,14 +64,79 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
 
         setFrameLoading(true);
         setFrameError(null);
+
+        // Priority 1: Check for binary JPEG endpoint (NEW FORMAT - BEST PERFORMANCE)
+        if (threat.has_binary_jpeg && threat.jpeg_endpoint) {
+            console.log('🚀 Using binary JPEG endpoint:', threat.jpeg_endpoint);
+            const fullUrl = threat.jpeg_endpoint.startsWith('http')
+                ? threat.jpeg_endpoint
+                : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${threat.jpeg_endpoint}`;
+            console.log('🔗 Binary JPEG URL:', fullUrl);
+            setFrameData(fullUrl);
+            setFrameLoading(false);
+            return;
+        }
+
+        // Priority 2: Check for file URL (legacy file storage)
+        if (threat.frame_url) {
+            console.log('🖼️ Using frame URL from threat object:', threat.frame_url);
+            const fullUrl = threat.frame_url.startsWith('http')
+                ? threat.frame_url
+                : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${threat.frame_url}`;
+            console.log('🔗 Full image URL:', fullUrl);
+            setFrameData(fullUrl);
+            setFrameLoading(false);
+            return;
+        }
+
+        // Priority 3: Check for embedded base64 data (legacy format)
+        if (threat.detection_frame_data) {
+            console.log('📸 Using embedded base64 frame data from threat object');
+            const base64Url = threat.detection_frame_data.startsWith('data:')
+                ? threat.detection_frame_data
+                : `data:image/png;base64,${threat.detection_frame_data}`;
+            setFrameData(base64Url);
+            setFrameLoading(false);
+            return;
+        }
+
+        // Priority 4: Try binary JPEG endpoint by ID (fallback)
         try {
-            console.log('Fetching frame data for threat ID:', threat.id);
-            const response = await detectionsAPI.getDetectionFrame(threat.id);
-            console.log('Frame data response:', response.data);
-            setFrameData(response.data.frame_data);
+            console.log('🔄 Trying binary JPEG endpoint for threat ID:', threat.id);
+            const jpegUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/detections/${threat.id}/jpeg`;
+            console.log('🔗 Trying JPEG URL:', jpegUrl);
+
+            // Test if the endpoint returns an image
+            const testResponse = await fetch(jpegUrl, { method: 'HEAD' });
+            if (testResponse.ok && testResponse.headers.get('content-type')?.includes('image/jpeg')) {
+                console.log('✅ Binary JPEG endpoint available');
+                setFrameData(jpegUrl);
+                setFrameLoading(false);
+                return;
+            }
         } catch (error) {
-            console.error('Error fetching frame data:', error);
-            setFrameError('No frame data available');
+            console.log('⚠️ Binary JPEG endpoint not available:', error);
+        }
+
+        // Priority 5: Fetch from legacy API as last resort
+        try {
+            console.log('🔄 Fetching frame data from legacy API for threat ID:', threat.id);
+            const response = await detectionsAPI.getDetectionFrame(threat.id);
+            console.log('📡 Frame API response:', response);
+
+            if (response.data && response.data.frame_data) {
+                console.log('✅ Frame data found via API, length:', response.data.frame_data.length);
+                const base64Url = response.data.frame_data.startsWith('data:')
+                    ? response.data.frame_data
+                    : `data:image/png;base64,${response.data.frame_data}`;
+                setFrameData(base64Url);
+            } else {
+                console.error('❌ No frame_data in API response:', response.data);
+                setFrameError('No frame data available');
+            }
+        } catch (error) {
+            console.error('❌ Error fetching frame data from API:', error);
+            setFrameError('Failed to fetch frame data');
         } finally {
             setFrameLoading(false);
         }
@@ -193,7 +260,7 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
                                 {frameData && !frameLoading && (
                                     <Box>
                                         <Image
-                                            src={`data:image/jpeg;base64,${frameData}`}
+                                            src={frameData}
                                             alt="Detection Frame"
                                             maxW="100%"
                                             maxH="300px"
@@ -201,6 +268,15 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
                                             border="1px solid"
                                             borderColor="gray.200"
                                             borderRadius="md"
+                                            onLoad={() => {
+                                                console.log('✅ Image loaded successfully!');
+                                            }}
+                                            onError={(e) => {
+                                                console.error('❌ Image failed to load:', e);
+                                                console.log('Frame data format:', frameData.substring(0, 100));
+                                                console.log('Frame data length:', frameData.length);
+                                                setFrameError('Image failed to display');
+                                            }}
                                         />
                                         <Text fontSize="xs" color="gray.500" mt={2} textAlign="center">
                                             Frame captured at {formatTimestamp(threat.timestamp)}

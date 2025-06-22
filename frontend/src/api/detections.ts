@@ -23,6 +23,18 @@ export interface Detection {
         timestamp: string;
     }>;
     metadata: any;
+    detection_frame_data?: string; // Base64 encoded frame image (legacy)
+    frame_data?: string; // Alternative field name
+    frame_url?: string; // URL path to frame image file (legacy)
+    has_binary_jpeg?: boolean; // Indicates if binary JPEG data is available
+    frame_metadata?: {
+        original_name?: string;
+        size?: number;
+        mimetype?: string;
+        format?: string;
+        uploaded_at?: string;
+    };
+    jpeg_endpoint?: string; // Direct endpoint to binary JPEG data
 }
 
 export interface ManualDetection extends Detection {

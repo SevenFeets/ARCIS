@@ -4,6 +4,9 @@ const { validateDetection, validateId, validatePagination } = require('../middle
 const { dbUtils } = require('../config/db');
 const arcjetMiddleware = require('../middleware/arcjet');
 const { supabaseDb } = require('../config/supabase');
+const { uploadSingle } = require('../middleware/upload');
+const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
 
@@ -211,7 +214,12 @@ router.get('/threats', async (req, res) => {
             device_id: '1',
             bounding_box: threat.bounding_box || { x: 0, y: 0, width: 100, height: 100 },
             comments: [],
-            metadata: threat.metadata || {}
+            metadata: threat.metadata || {},
+            detection_frame_data: threat.detection_frame_data, // Include base64 frame data if available (legacy)
+            frame_url: threat.frame_url, // Include frame URL for file storage (legacy)
+            has_binary_jpeg: !!threat.detection_frame_jpeg, // Indicate if binary JPEG is available
+            frame_metadata: threat.frame_metadata, // Include JPEG metadata
+            jpeg_endpoint: threat.detection_frame_jpeg ? `/api/detections/${threat.detection_id}/jpeg` : null // Direct JPEG endpoint
         }));
 
         res.json({
@@ -230,18 +238,27 @@ router.get('/threats', async (req, res) => {
     }
 });
 
-// GET /api/detections/weapons/:type - Get detections by weapon type
+// GET /api/detections/weapons/:type - Get detections by weapon type (with validation)
 router.get('/weapons/:type', async (req, res) => {
     try {
         const weaponType = req.params.type;
         console.log(`Getting detections for weapon type: ${weaponType}`);
 
-        // Simple query filtered by weapon type
+        // Validate weapon type first
+        const validWeaponTypes = ['Knife', 'Pistol', 'weapon', 'rifle'];
+        if (!validWeaponTypes.includes(weaponType)) {
+            return res.status(400).json({
+                error: `Invalid weapon type: ${weaponType}. Must be one of: ${validWeaponTypes.join(', ')}`,
+                code: 'INVALID_WEAPON_TYPE'
+            });
+        }
+
+        // Query with exact matching (not fuzzy)
         const { supabase } = require('../config/supabase');
         const { data, error } = await supabase
             .from('detections')
             .select('*')
-            .ilike('object_type', `%${weaponType}%`)
+            .eq('object_type', weaponType)
             .order('timestamp', { ascending: false });
 
         if (error) {
@@ -330,13 +347,23 @@ router.post('/manual', async (req, res) => {
             });
         }
 
+        // Validate confidence (0.0 to 1.0)
+        const confValue = parseFloat(confidence);
+        if (isNaN(confValue) || confValue < 0 || confValue > 1) {
+            return res.status(400).json({
+                success: false,
+                error: 'Confidence must be a number between 0.0 and 1.0',
+                code: 'INVALID_CONFIDENCE'
+            });
+        }
+
         // Create manual detection
         const detectionData = {
             object_category: 'weapon',
             object_type: object_type,
-            confidence: parseFloat(confidence),
+            confidence: confValue,
             bounding_box: bounding_box || { x: 0, y: 0, width: 100, height: 100 },
-            threat_level: calculateThreatLevel(object_type, confidence),
+            threat_level: calculateThreatLevel(object_type, confValue),
             metadata: {
                 entry_type: 'manual',
                 officer_id: officer_id,
@@ -350,13 +377,14 @@ router.post('/manual', async (req, res) => {
 
         const detection = await supabaseDb.detections.create(detectionData);
 
-        res.json({
+        res.status(201).json({
             success: true,
             detection_id: detection.detection_id,
             weapon_type: detection.object_type,
             threat_level: detection.threat_level,
             confidence: detection.confidence,
             location: location || 'Unknown',
+            officer_id: officer_id || null,
             officer: officer_name || 'Unknown Officer',
             entry_type: 'manual'
         });
@@ -567,6 +595,220 @@ router.get('/threats', async (req, res) => {
     }
 });
 
+// GET /api/detections/:id/frame - Get detection frame image
+router.get('/:id/frame', async (req, res) => {
+    try {
+        const detectionId = parseInt(req.params.id);
+
+        if (isNaN(detectionId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid detection ID'
+            });
+        }
+
+        const { supabase } = require('../config/supabase');
+        const { data, error } = await supabase
+            .from('detections')
+            .select('detection_id, detection_frame_data, timestamp')
+            .eq('detection_id', detectionId)
+            .single();
+
+        if (error || !data) {
+            return res.status(404).json({
+                success: false,
+                error: 'Detection not found'
+            });
+        }
+
+        if (!data.detection_frame_data) {
+            return res.status(404).json({
+                success: false,
+                error: 'No frame data available for this detection'
+            });
+        }
+
+        res.json({
+            success: true,
+            detection_id: data.detection_id,
+            frame_data: data.detection_frame_data,
+            timestamp: data.timestamp,
+            message: 'Frame data retrieved successfully'
+        });
+
+    } catch (error) {
+        console.error('Get detection frame error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to retrieve frame data',
+            details: error.message
+        });
+    }
+});
+
+// POST /api/detections/upload - Upload detection with image file (NEW FILE STORAGE)
+router.post('/upload', validateApiKey, uploadSingle, async (req, res) => {
+    try {
+        console.log('📸 File upload detection endpoint called');
+        console.log('📁 Uploaded file:', req.file);
+        console.log('📋 Body data:', req.body);
+
+        const {
+            object_type,
+            confidence,
+            bounding_box,
+            threat_level,
+            system_metrics,
+            session_id,
+            timestamp,
+            device_id
+        } = req.body;
+
+        // Validate required fields
+        if (!object_type || !confidence || !bounding_box) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields',
+                required: ['object_type', 'confidence', 'bounding_box'],
+                received: Object.keys(req.body)
+            });
+        }
+
+        // Check if file was uploaded
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'No detection frame image uploaded',
+                message: 'Include detection_frame file in multipart form data'
+            });
+        }
+
+        // Create frame URL path (relative to server)
+        const frameUrl = `/api/images/${req.file.filename}`;
+
+        // Create detection record with frame URL
+        const detectionData = {
+            object_category: 'weapon',
+            object_type: object_type,
+            confidence: parseFloat(confidence),
+            bounding_box: typeof bounding_box === 'string' ? JSON.parse(bounding_box) : bounding_box,
+            threat_level: threat_level || calculateThreatLevel(object_type, confidence),
+            frame_url: frameUrl, // Store file URL instead of base64
+            system_metrics: system_metrics ? (typeof system_metrics === 'string' ? JSON.parse(system_metrics) : system_metrics) : null,
+            timestamp: timestamp || new Date().toISOString(),
+            metadata: {
+                device_id: device_id || req.deviceId,
+                file_info: {
+                    original_name: req.file.originalname,
+                    filename: req.file.filename,
+                    size: req.file.size,
+                    mimetype: req.file.mimetype
+                }
+            }
+        };
+
+        const { supabase } = require('../config/supabase');
+        const { data: detection, error } = await supabase
+            .from('detections')
+            .insert([detectionData])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Database error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to save detection to database',
+                details: error.message
+            });
+        }
+
+        // Create alert if threat level is high
+        if (detection.threat_level >= 7) {
+            const alertData = {
+                detection_id: detection.detection_id,
+                alert_type: 'weapon_detected',
+                alert_category: 'security',
+                severity: detection.threat_level >= 9 ? 5 : 4,
+                action_required: `Immediate response required: ${object_type} detected with ${confidence}% confidence`,
+                timestamp: timestamp || new Date().toISOString()
+            };
+
+            const { error: alertError } = await supabase
+                .from('alerts')
+                .insert([alertData]);
+
+            if (alertError) {
+                console.error('Alert creation error:', alertError);
+            }
+        }
+
+        res.json({
+            success: true,
+            data: detection,
+            frame_url: frameUrl,
+            file_info: {
+                filename: req.file.filename,
+                size: req.file.size,
+                path: req.file.path
+            },
+            message: 'Detection with image file recorded successfully',
+            alert_created: detection.threat_level >= 7
+        });
+
+    } catch (error) {
+        console.error('File upload detection error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to process detection upload',
+            details: error.message
+        });
+    }
+});
+
+// GET /api/images/:filename - Serve uploaded detection images
+router.get('/images/:filename', (req, res) => {
+    try {
+        const filename = req.params.filename;
+        const { uploadsDir } = require('../middleware/upload');
+        const imagePath = path.join(uploadsDir, filename);
+
+        // Check if file exists
+        if (!fs.existsSync(imagePath)) {
+            return res.status(404).json({
+                success: false,
+                error: 'Image not found'
+            });
+        }
+
+        // Set appropriate headers
+        const ext = path.extname(filename).toLowerCase();
+        const mimeTypes = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp'
+        };
+
+        const mimeType = mimeTypes[ext] || 'image/jpeg';
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+
+        // Stream the file
+        const fileStream = fs.createReadStream(imagePath);
+        fileStream.pipe(res);
+
+    } catch (error) {
+        console.error('Image serving error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to serve image',
+            details: error.message
+        });
+    }
+});
+
 // GET /api/detections/:id/metrics - Get system metrics for a specific detection
 router.get('/:id/metrics', async (req, res) => {
     try {
@@ -622,71 +864,11 @@ router.get('/:id/metrics', async (req, res) => {
     }
 });
 
-// GET /api/detections/:id/frame - Get detection frame image
-router.get('/:id/frame', async (req, res) => {
-    try {
-        const detectionId = parseInt(req.params.id);
-
-        if (isNaN(detectionId)) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid detection ID'
-            });
-        }
-
-        // Return mock frame data (1x1 pixel transparent PNG in base64)
-        const mockFrameData = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-
-        res.json({
-            success: true,
-            detection_id: detectionId,
-            frame_data: mockFrameData,
-            timestamp: new Date().toISOString(),
-            message: 'Detection frame retrieved successfully'
-        });
-
-    } catch (error) {
-        console.error('Error getting detection frame:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to retrieve detection frame',
-            details: error.message
-        });
-    }
-});
+// Duplicate frame endpoint removed - using the real Supabase implementation above
 
 // needs to add verifyToken, requireClearance(3)
 
-// GET /api/detections/weapons/:type - Get detections by weapon type
-router.get('/weapons/:type', async (req, res) => {
-    try {
-        const weaponType = req.params.type;
-
-        // Validate weapon type
-        const validWeaponTypes = ['Knife', 'Pistol', 'weapon', 'rifle'];
-        if (!validWeaponTypes.includes(weaponType)) {
-            return res.status(400).json({
-                error: `Invalid weapon type: ${weaponType}. Must be one of: ${validWeaponTypes.join(', ')}`,
-                code: 'INVALID_WEAPON_TYPE'
-            });
-        }
-
-        const weapons = await dbUtils.detections.getByWeaponType(weaponType);
-
-        res.json({
-            weapon_type: weaponType,
-            detections: weapons,
-            count: weapons.length
-        });
-
-    } catch (error) {
-        console.error('Get weapons by type error:', error);
-        res.status(500).json({
-            error: 'Failed to retrieve weapon detections by type',
-            code: 'GET_WEAPONS_BY_TYPE_ERROR'
-        });
-    }
-});
+// Note: /weapons/:type endpoint is defined above with proper validation
 
 // GET /api/detections/manual - Get only manual detection entries
 router.get('/manual', async (req, res) => {
@@ -1376,6 +1558,7 @@ router.post('/manual', async (req, res) => {
             threat_level: threatLevel,
             confidence: Math.round(confValue * 100),
             location: location,
+            officer_id: officer_id || null,
             officer: officer_name || 'Unknown Officer',
             entry_type: 'manual'
         });
@@ -1570,5 +1753,204 @@ async function createThreatAlert(detection) {
 //         });
 //     }
 // });
+
+// POST /api/detections/upload-jpeg - Upload detection with binary JPEG data (DIRECT DATABASE STORAGE)
+router.post('/upload-jpeg', validateApiKey, uploadSingle, async (req, res) => {
+    try {
+        console.log('📸 Binary JPEG upload endpoint called');
+        console.log('📁 Uploaded file:', req.file);
+        console.log('📋 Body data:', req.body);
+
+        const {
+            object_type,
+            confidence,
+            bounding_box,
+            threat_level,
+            system_metrics,
+            session_id,
+            timestamp,
+            device_id
+        } = req.body;
+
+        // Validate required fields
+        if (!object_type || !confidence || !bounding_box) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields',
+                required: ['object_type', 'confidence', 'bounding_box'],
+                received: Object.keys(req.body)
+            });
+        }
+
+        // Check if file was uploaded
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'No JPEG image uploaded',
+                message: 'Include detection_frame file in multipart form data'
+            });
+        }
+
+        // Validate file type
+        if (!req.file.mimetype.includes('jpeg') && !req.file.mimetype.includes('jpg')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid file type',
+                message: 'Only JPEG/JPG files are supported',
+                received: req.file.mimetype
+            });
+        }
+
+        // Read the binary JPEG data
+        const fs = require('fs');
+        const jpegBuffer = fs.readFileSync(req.file.path);
+
+        console.log(`📸 JPEG file read: ${jpegBuffer.length} bytes`);
+
+        // Create frame metadata
+        const frameMetadata = {
+            original_name: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+            format: 'jpeg',
+            uploaded_at: new Date().toISOString()
+        };
+
+        // Create detection record with binary JPEG data
+        const detectionData = {
+            object_category: 'weapon',
+            object_type: object_type,
+            confidence: parseFloat(confidence),
+            bounding_box: typeof bounding_box === 'string' ? JSON.parse(bounding_box) : bounding_box,
+            threat_level: threat_level || calculateThreatLevel(object_type, confidence),
+            detection_frame_jpeg: jpegBuffer, // Store binary JPEG data directly
+            frame_metadata: frameMetadata,
+            system_metrics: system_metrics ? (typeof system_metrics === 'string' ? JSON.parse(system_metrics) : system_metrics) : null,
+            timestamp: timestamp || new Date().toISOString(),
+            metadata: {
+                device_id: device_id || req.deviceId,
+                storage_method: 'binary_jpeg_database'
+            }
+        };
+
+        const { supabase } = require('../config/supabase');
+        const { data: detection, error } = await supabase
+            .from('detections')
+            .insert([detectionData])
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Database error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to save detection to database',
+                details: error.message
+            });
+        }
+
+        // Clean up uploaded file since we stored it in database
+        try {
+            fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+            console.warn('File cleanup warning:', cleanupError.message);
+        }
+
+        // Create alert if threat level is high
+        if (detection.threat_level >= 7) {
+            const alertData = {
+                detection_id: detection.detection_id,
+                alert_type: 'weapon_detected',
+                alert_category: 'security',
+                severity: detection.threat_level >= 9 ? 5 : 4,
+                action_required: `Immediate response required: ${object_type} detected with ${confidence}% confidence`,
+                timestamp: timestamp || new Date().toISOString()
+            };
+
+            const { error: alertError } = await supabase
+                .from('alerts')
+                .insert([alertData]);
+
+            if (alertError) {
+                console.error('Alert creation error:', alertError);
+            }
+        }
+
+        res.json({
+            success: true,
+            data: detection,
+            storage_method: 'binary_jpeg_database',
+            jpeg_size: jpegBuffer.length,
+            frame_metadata: frameMetadata,
+            message: 'Detection with binary JPEG recorded successfully',
+            alert_created: detection.threat_level >= 7
+        });
+
+    } catch (error) {
+        console.error('Binary JPEG upload error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to process binary JPEG upload',
+            details: error.message
+        });
+    }
+});
+
+// GET /api/detections/:id/jpeg - Serve binary JPEG data directly from database
+router.get('/:id/jpeg', async (req, res) => {
+    try {
+        const detectionId = parseInt(req.params.id);
+
+        if (isNaN(detectionId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid detection ID'
+            });
+        }
+
+        const { supabase } = require('../config/supabase');
+        const { data, error } = await supabase
+            .from('detections')
+            .select('detection_frame_jpeg, frame_metadata')
+            .eq('detection_id', detectionId)
+            .single();
+
+        if (error) {
+            console.error('Database error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to retrieve detection',
+                details: error.message
+            });
+        }
+
+        if (!data || !data.detection_frame_jpeg) {
+            return res.status(404).json({
+                success: false,
+                error: 'No JPEG data found for this detection'
+            });
+        }
+
+        // Set appropriate headers for JPEG
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Content-Length', data.detection_frame_jpeg.length);
+        res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+
+        if (data.frame_metadata && data.frame_metadata.original_name) {
+            res.setHeader('Content-Disposition', `inline; filename="${data.frame_metadata.original_name}"`);
+        }
+
+        // Send the binary JPEG data
+        res.send(Buffer.from(data.detection_frame_jpeg));
+
+    } catch (error) {
+        console.error('JPEG serving error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to serve JPEG data',
+            details: error.message
+        });
+    }
+});
 
 module.exports = router;

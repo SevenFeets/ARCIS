@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Table,
@@ -29,7 +29,10 @@ import {
     Divider,
     Flex,
     Spacer,
-    Tooltip
+    Tooltip,
+    Image,
+    Spinner,
+    Center
 } from '@chakra-ui/react';
 import { Detection } from '../../api/detections';
 import { detectionsAPI } from '../../api/detections';
@@ -44,6 +47,8 @@ const DetectionsList: React.FC<DetectionsListProps> = ({ detections, title = "Re
     const [selectedDetection, setSelectedDetection] = useState<Detection | null>(null);
     const [newComment, setNewComment] = useState('');
     const [loading, setLoading] = useState(false);
+    const [frameData, setFrameData] = useState<string | null>(null);
+    const [loadingFrame, setLoadingFrame] = useState(false);
 
     const { isOpen, onOpen, onClose } = useDisclosure();
     const toast = useToast();
@@ -74,8 +79,51 @@ const DetectionsList: React.FC<DetectionsListProps> = ({ detections, title = "Re
     const handleViewDetails = (detection: Detection) => {
         setSelectedDetection(detection);
         setNewComment('');
+        setFrameData(null);
         onOpen();
     };
+
+    // Load frame data when modal opens and detection is selected
+    useEffect(() => {
+        const loadFrameData = async () => {
+            if (!selectedDetection || !isOpen) return;
+
+            // Check if detection already has frame data
+            if (selectedDetection.detection_frame_data || selectedDetection.frame_data) {
+                const frameBase64 = selectedDetection.detection_frame_data || selectedDetection.frame_data;
+                // Ensure proper data URL format
+                if (frameBase64 && frameBase64.startsWith('data:image')) {
+                    setFrameData(frameBase64);
+                } else if (frameBase64) {
+                    setFrameData(`data:image/png;base64,${frameBase64}`);
+                }
+                return;
+            }
+
+            // Try to fetch frame data from API
+            const detectionId = selectedDetection.id || selectedDetection.detection_id;
+            if (!detectionId) return;
+
+            setLoadingFrame(true);
+            try {
+                const response = await detectionsAPI.getDetectionFrame(detectionId);
+                if (response.data.frame_data) {
+                    const frameBase64 = response.data.frame_data;
+                    if (frameBase64.startsWith('data:image')) {
+                        setFrameData(frameBase64);
+                    } else {
+                        setFrameData(`data:image/png;base64,${frameBase64}`);
+                    }
+                }
+            } catch (error) {
+                console.log('No frame data available for this detection');
+            } finally {
+                setLoadingFrame(false);
+            }
+        };
+
+        loadFrameData();
+    }, [selectedDetection, isOpen]);
 
     const handleAddComment = async () => {
         if (!selectedDetection || !newComment.trim()) return;
@@ -254,6 +302,44 @@ const DetectionsList: React.FC<DetectionsListProps> = ({ detections, title = "Re
                     <ModalBody>
                         {selectedDetection && (
                             <VStack spacing={4} align="stretch">
+                                {/* Detection Frame Image */}
+                                {(frameData || loadingFrame) && (
+                                    <Box>
+                                        <Heading size="sm" mb={2}>🖼️ Detection Frame</Heading>
+                                        {loadingFrame ? (
+                                            <Center p={4}>
+                                                <VStack>
+                                                    <Spinner size="lg" />
+                                                    <Text fontSize="sm" color="gray.500">Loading frame...</Text>
+                                                </VStack>
+                                            </Center>
+                                        ) : frameData ? (
+                                            <Box
+                                                border="2px solid"
+                                                borderColor="gray.200"
+                                                borderRadius="md"
+                                                overflow="hidden"
+                                                maxW="100%"
+                                            >
+                                                <Image
+                                                    src={frameData}
+                                                    alt="Detection Frame"
+                                                    maxW="100%"
+                                                    maxH="400px"
+                                                    objectFit="contain"
+                                                    fallback={
+                                                        <Center p={8}>
+                                                            <Text color="gray.500">Failed to load image</Text>
+                                                        </Center>
+                                                    }
+                                                />
+                                            </Box>
+                                        ) : null}
+                                    </Box>
+                                )}
+
+                                {frameData && <Divider />}
+
                                 {/* Basic Info */}
                                 <Box>
                                     <Heading size="sm" mb={2}>Basic Information</Heading>

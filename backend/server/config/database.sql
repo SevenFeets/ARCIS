@@ -64,7 +64,10 @@ CREATE TABLE IF NOT EXISTS detections (
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     threat_level INTEGER,
     metadata JSONB,
-    detection_frame_data TEXT, -- Base64 encoded detection frame image
+    detection_frame_data TEXT, -- Base64 encoded detection frame image (legacy)
+    frame_url TEXT, -- URL path to frame image file (file storage)
+    detection_frame_jpeg BYTEA, -- Binary JPEG image data (preferred)
+    frame_metadata JSONB, -- Image metadata: width, height, size, format, etc.
     system_metrics JSONB -- Device system metrics at time of detection
 );
 
@@ -112,6 +115,8 @@ CREATE INDEX idx_detections_frame ON detections(frame_id);
 CREATE INDEX idx_detections_object_type ON detections(object_type);
 CREATE INDEX idx_detections_timestamp ON detections(timestamp);
 CREATE INDEX idx_detections_threat_level ON detections(threat_level);
+CREATE INDEX IF NOT EXISTS idx_detections_frame_url ON detections(frame_url);
+CREATE INDEX IF NOT EXISTS idx_detections_has_jpeg ON detections(detection_id) WHERE detection_frame_jpeg IS NOT NULL;
 CREATE INDEX idx_alerts_detection ON alerts(detection_id);
 CREATE INDEX idx_alerts_severity ON alerts(severity);
 CREATE INDEX idx_alerts_acknowledged ON alerts(acknowledged);
@@ -153,15 +158,28 @@ SELECT
     d.object_type,
     d.threat_level,
     d.confidence,
+    d.bounding_box,
+    d.detection_frame_data, -- Legacy base64 field
+    d.frame_url, -- File storage URL
+    d.detection_frame_jpeg, -- New binary JPEG field
+    d.frame_metadata,
+    CASE 
+        WHEN d.detection_frame_jpeg IS NOT NULL THEN 'binary_jpeg'
+        WHEN d.frame_url IS NOT NULL AND d.frame_url != 'legacy_base64_data' THEN 'file_url'
+        WHEN d.detection_frame_data IS NOT NULL THEN 'base64'
+        ELSE 'none'
+    END AS frame_format,
     w.weapon_type,
     w.in_use,
     w.visible_ammunition,
     f.file_path,
-    s.device_id
+    s.device_id,
+    d.metadata,
+    d.system_metrics
 FROM detections d
-JOIN weapon_detections w ON d.detection_id = w.detection_id
-JOIN frames f ON d.frame_id = f.frame_id
-JOIN detection_sessions s ON f.session_id = s.session_id
+LEFT JOIN weapon_detections w ON d.detection_id = w.detection_id
+LEFT JOIN frames f ON d.frame_id = f.frame_id
+LEFT JOIN detection_sessions s ON f.session_id = s.session_id
 WHERE d.threat_level >= 5
 ORDER BY d.threat_level DESC, d.timestamp DESC;
 

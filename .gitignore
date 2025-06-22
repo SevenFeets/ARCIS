@@ -41,3 +41,7 @@ lerna-debug.log*
 *.sln
 *.sw?
 
+run_migration.cjs
+update_detection_26.cjs
+test_weapon_detection_with_frame.cjs
+weapon_detection.jpg
