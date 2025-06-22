@@ -820,28 +820,79 @@ router.get('/all', async (req, res) => {
 // GET /api/detections/:id - Get specific weapon detection
 router.get('/:id', async (req, res) => {
     try {
-        const detection = await dbUtils.detections.findById(req.params.id);
+        const detectionId = parseInt(req.params.id);
 
-        if (!detection) {
-            return res.status(404).json({
-                error: 'Weapon detection not found',
-                code: 'DETECTION_NOT_FOUND'
+        if (isNaN(detectionId)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid detection ID',
+                code: 'INVALID_ID'
             });
         }
 
-        // Get weapon-specific details
-        const weaponDetails = await dbUtils.weapons.findByDetection(req.params.id);
+        console.log(`Getting detection by ID: ${detectionId}`);
+
+        // Query Supabase for the detection
+        const { supabase } = require('../config/supabase');
+        const { data, error } = await supabase
+            .from('detections')
+            .select('*')
+            .eq('detection_id', detectionId)
+            .single();
+
+        if (error || !data) {
+            console.log('Supabase error or no data:', error?.message);
+            return res.status(404).json({
+                success: false,
+                error: 'Weapon detection not found',
+                code: 'DETECTION_NOT_FOUND',
+                detection_id: detectionId
+            });
+        }
+
+        // Format the detection for frontend (same format as /all endpoint)
+        const formattedDetection = {
+            id: data.detection_id,
+            detection_id: data.detection_id,
+            weapon_type: data.object_type || 'Unknown',
+            confidence: data.confidence || 0,
+            threat_level: data.threat_level || 1,
+            location: 'Unknown', // Add location if available in metadata
+            timestamp: data.timestamp || new Date().toISOString(),
+            device: 'ARCIS Device', // Add device name if available
+            device_id: '1', // Add device ID if available
+            bounding_box: data.bounding_box || { x: 0, y: 0, width: 100, height: 100 },
+            comments: [], // Add comments if available in metadata
+            metadata: data.metadata || {},
+            // Additional fields for detailed view
+            object_category: data.object_category,
+            frame_id: data.frame_id,
+            detection_frame_data: data.detection_frame_data,
+            system_metrics: data.system_metrics
+        };
+
+        // Mock weapon details for now (can be enhanced later)
+        const weaponDetails = {
+            weapon_type: data.object_type,
+            threat_assessment: data.threat_level >= 7 ? 'High' : data.threat_level >= 4 ? 'Medium' : 'Low',
+            confidence_level: data.confidence >= 0.8 ? 'High' : data.confidence >= 0.5 ? 'Medium' : 'Low',
+            detection_method: data.metadata?.device_type || 'Unknown'
+        };
 
         res.json({
-            detection,
-            weapon_details: weaponDetails
+            success: true,
+            detection: formattedDetection,
+            weapon_details: weaponDetails,
+            message: 'Detection retrieved successfully'
         });
 
     } catch (error) {
         console.error('Get weapon detection error:', error);
         res.status(500).json({
+            success: false,
             error: 'Failed to retrieve weapon detection',
-            code: 'GET_DETECTION_ERROR'
+            code: 'GET_DETECTION_ERROR',
+            details: error.message
         });
     }
 });
