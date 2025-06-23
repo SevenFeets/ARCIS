@@ -45,3 +45,4 @@ run_migration.cjs
 update_detection_26.cjs
 test_weapon_detection_with_frame.cjs
 weapon_detection.jpg
+weapon_detection_base64.txt
