@@ -1,69 +1,100 @@
-// Load environment variables first
+// Forcefully clear frame_url for detection 26 - Run from backend/server
 require('dotenv').config();
-
 const { supabase } = require('./config/supabase');
 
-async function fixFrameUrl() {
-    console.log('🔧 Fixing frame URL for Detection ID 26');
-    console.log('=====================================');
+async function forceFixFrameUrl() {
+    console.log('🔧 Force Fix Frame URL for Detection 26');
+    console.log('======================================');
 
     try {
-        // Update detection 26 with the correct frame URL
-        const correctFrameUrl = '/api/detections/images/detection_1750626534718_26.jpg';
-
-        const { data, error } = await supabase
+        // Step 1: Check current state
+        console.log('📊 Checking current state...');
+        const { data: before, error: beforeError } = await supabase
             .from('detections')
-            .update({
-                frame_url: correctFrameUrl
-            })
+            .select('detection_id, frame_url, detection_frame_data')
             .eq('detection_id', 26)
-            .select();
+            .single();
 
-        if (error) {
-            console.error('❌ Database update error:', error);
+        if (beforeError) {
+            console.error('❌ Could not fetch Detection 26:', beforeError);
             return;
         }
 
-        if (data && data.length > 0) {
-            console.log('✅ Detection 26 frame URL fixed!');
-            console.log('🔗 New Frame URL:', correctFrameUrl);
+        console.log('Current state:');
+        console.log('- detection_id:', before.detection_id);
+        console.log('- frame_url:', before.frame_url);
+        console.log('- base64 data length:', before.detection_frame_data?.length || 'N/A');
 
-            // Test the threats endpoint again
-            console.log('\n🔍 Testing threats endpoint...');
-            const threatsResponse = await fetch('http://localhost:5000/api/detections/threats');
-            if (threatsResponse.ok) {
-                const threats = await threatsResponse.json();
-                const threat26 = threats.active_weapon_threats.find(t => t.detection_id === 26);
-                if (threat26) {
-                    console.log('✅ Detection 26 found in threats');
-                    console.log('🔗 Updated frame_url:', threat26.frame_url);
+        // Step 2: Force clear frame_url using raw SQL for certainty
+        console.log('\n🔧 Force clearing frame_url with raw SQL...');
+        const { data: sqlResult, error: sqlError } = await supabase
+            .rpc('exec_sql', {
+                sql: `UPDATE detections SET frame_url = NULL WHERE detection_id = 26 RETURNING detection_id, frame_url;`
+            });
 
-                    // Test the image URL
-                    const imageUrl = `http://localhost:5000${threat26.frame_url}`;
-                    console.log('\n🖼️ Testing image URL:', imageUrl);
+        if (sqlError) {
+            console.log('⚠️ Raw SQL failed, trying regular update...');
 
-                    try {
-                        const imageResponse = await fetch(imageUrl);
-                        if (imageResponse.ok) {
-                            console.log('✅ Image URL is accessible!');
-                            console.log('📏 Content-Length:', imageResponse.headers.get('content-length'));
-                            console.log('🎨 Content-Type:', imageResponse.headers.get('content-type'));
-                        } else {
-                            console.log('❌ Image URL not accessible');
-                        }
-                    } catch (e) {
-                        console.log('❌ Error accessing image:', e.message);
-                    }
-                }
+            // Fallback to regular update
+            const { data: updateResult, error: updateError } = await supabase
+                .from('detections')
+                .update({ frame_url: null })
+                .eq('detection_id', 26)
+                .select('detection_id, frame_url');
+
+            if (updateError) {
+                console.error('❌ Update failed:', updateError);
+                return;
+            } else {
+                console.log('✅ Regular update successful');
             }
-
         } else {
-            console.log('❌ Detection 26 not found in database');
+            console.log('✅ Raw SQL update successful');
+        }
+
+        // Step 3: Verify the change
+        console.log('\n🔍 Verifying the fix...');
+        const { data: after, error: afterError } = await supabase
+            .from('detections')
+            .select('detection_id, frame_url, detection_frame_data')
+            .eq('detection_id', 26)
+            .single();
+
+        if (afterError) {
+            console.error('❌ Verification failed:', afterError);
+            return;
+        }
+
+        console.log('After fix:');
+        console.log('- detection_id:', after.detection_id);
+        console.log('- frame_url:', after.frame_url);
+        console.log('- base64 data length:', after.detection_frame_data?.length || 'N/A');
+
+        if (after.frame_url === null) {
+            console.log('\n🎉 SUCCESS! frame_url is now null');
+            console.log('✅ Frontend will now use base64 data');
+        } else {
+            console.log('\n❌ frame_url is still not null:', after.frame_url);
+        }
+
+        // Step 4: Test the threats endpoint
+        console.log('\n📡 Testing threats endpoint after fix...');
+        const response = await fetch('http://localhost:5000/api/detections/threats');
+        if (response.ok) {
+            const data = await response.json();
+            const detection26 = data.active_weapon_threats?.find(t => t.detection_id === 26);
+
+            if (detection26) {
+                console.log('Threats endpoint after fix:');
+                console.log('- frame_url:', detection26.frame_url);
+                console.log('- base64 data present:', !!detection26.detection_frame_data);
+            }
         }
 
     } catch (error) {
-        console.error('❌ Error:', error.message);
+        console.error('❌ Script error:', error);
     }
 }
 
-fixFrameUrl(); 
+// Run the fix
+forceFixFrameUrl(); 

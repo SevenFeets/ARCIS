@@ -1,237 +1,348 @@
-Understanding Indexes and Views in the ARCIS Database
-Let me explain the indexes and views sections of your database schema in detail.
+# ARCIS Database Schema Documentation
+## Advanced Real-time Comprehensive Intelligence System (Weapon Detection)
 
-1. Indexes
-Indexes are database structures that improve the speed of data retrieval operations. They work similar to a book's index - helping you find data without scanning the entire table.
-Basic Index Types in Your Schema
+This document explains the database schema for the ARCIS weapon detection system, including tables, indexes, views, and special features.
 
-### Basic Index Types in Your Schema
+---
 
+## 🎯 **System Overview**
+
+ARCIS is a **weapon detection system** that processes data from Jetson Nano/Raspberry Pi devices with Google Cloud integration. The database is designed specifically for **weapon detection only**, with support for multiple image storage methods.
+
+---
+
+## 📊 **Core Tables**
+
+### **1. Users Table**
 ```sql
--- Core table indexes
-CREATE INDEX idx_frames_session ON frames(session_id);
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(28) NOT NULL DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP
+);
+```
+**Purpose**: User authentication and authorization for the web dashboard.
+
+### **2. Devices Table**
+```sql
+CREATE TABLE devices (
+    device_id SERIAL PRIMARY KEY,
+    device_name VARCHAR(255) NOT NULL,
+    device_type VARCHAR(255) NOT NULL,
+    status VARCHAR(255) DEFAULT 'offline',
+    ip_address VARCHAR(255),
+    mac_address VARCHAR(17),
+    last_seen TIMESTAMP,
+    configuration JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+**Purpose**: Manages Jetson Nano/Raspberry Pi devices that perform weapon detection.
+
+### **3. Detection Sessions Table**
+```sql
+CREATE TABLE detection_sessions (
+    session_id SERIAL PRIMARY KEY,
+    device_id INTEGER REFERENCES devices(device_id),
+    start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    end_time TIMESTAMP,
+    status VARCHAR(255) DEFAULT 'active',
+    settings JSONB,
+    notes TEXT,
+    created_by INTEGER REFERENCES users(user_id)
+);
+```
+**Purpose**: Groups detection activities into logical sessions.
+
+### **4. Frames Table**
+```sql
+CREATE TABLE frames (
+    frame_id SERIAL PRIMARY KEY,
+    session_id INTEGER REFERENCES detection_sessions(session_id),
+    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    file_path VARCHAR(255) NOT NULL,
+    width INTEGER,
+    height INTEGER,
+    processed BOOLEAN DEFAULT FALSE,
+    metadata JSONB
+);
+```
+**Purpose**: Stores metadata about video frames that contain detections.
+
+### **5. Detections Table** ⭐ **CORE TABLE**
+```sql
+CREATE TABLE detections (
+    detection_id SERIAL PRIMARY KEY,
+    frame_id INTEGER REFERENCES frames(frame_id),
+    object_category object_category NOT NULL DEFAULT 'weapon',
+    object_type VARCHAR(50) NOT NULL, -- 'Knife', 'Pistol', 'weapon', 'rifle'
+    confidence FLOAT NOT NULL,
+    bounding_box JSONB NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    threat_level INTEGER,
+    metadata JSONB,
+    -- IMAGE STORAGE OPTIONS (Multiple formats supported)
+    detection_frame_data TEXT,     -- Base64 encoded image (Priority 3)
+    frame_url TEXT,               -- File URL path (Priority 2)
+    detection_frame_jpeg BYTEA,   -- Binary JPEG data (Priority 1)
+    frame_metadata JSONB,         -- Image metadata
+    system_metrics JSONB          -- Device metrics at detection time
+);
+```
+**Purpose**: **Main table** storing all weapon detection data and associated images.
+
+**🔧 Image Storage Priority System:**
+1. **Binary JPEG** (`detection_frame_jpeg`) - Highest priority
+2. **File URL** (`frame_url`) - Medium priority  
+3. **Base64 Data** (`detection_frame_data`) - Fallback priority
+
+### **6. Weapon Detections Table**
+```sql
+CREATE TABLE weapon_detections (
+    weapon_detection_id SERIAL PRIMARY KEY,
+    detection_id INTEGER REFERENCES detections(detection_id),
+    weapon_type VARCHAR(50) NOT NULL,
+    visible_ammunition BOOLEAN DEFAULT FALSE,
+    estimated_caliber VARCHAR(20),
+    orientation_angle FLOAT,
+    in_use BOOLEAN DEFAULT FALSE,
+    metadata JSONB
+);
+```
+**Purpose**: Extended details specific to weapon detections.
+
+### **7. Alerts Table**
+```sql
+CREATE TABLE alerts (
+    alert_id SERIAL PRIMARY KEY,
+    detection_id INTEGER REFERENCES detections(detection_id),
+    alert_type VARCHAR(50) NOT NULL,
+    alert_category VARCHAR(50) NOT NULL,
+    severity INTEGER NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    action_required TEXT,
+    acknowledged BOOLEAN DEFAULT FALSE,
+    acknowledged_by INTEGER REFERENCES users(user_id),
+    acknowledged_at TIMESTAMP,
+    notes TEXT
+);
+```
+**Purpose**: High-priority alerts generated from weapon detections.
+
+---
+
+## 🔍 **Performance Indexes**
+
+### **Core Detection Indexes**
+```sql
 CREATE INDEX idx_detections_frame ON detections(frame_id);
-CREATE INDEX idx_detections_object_category ON detections(object_category);
 CREATE INDEX idx_detections_object_type ON detections(object_type);
 CREATE INDEX idx_detections_timestamp ON detections(timestamp);
 CREATE INDEX idx_detections_threat_level ON detections(threat_level);
 ```
+**Purpose**: Speed up queries filtering by frame, weapon type, time, and threat level.
 
-How These Indexes Help:
-idx_frames_session - When you query frames for a specific session (which you'll do often), this index makes it fast to find all frames belonging to a particular detection session.
-
-idx_detections_frame - Makes it quick to find all detections from a specific frame, speeding up queries that join frames and detections.
-
-idx_detections_object_category - Speeds up queries that filter by object category (e.g., "show me all military vehicles").
-
-idx_detections_object_type - Accelerates filtering by specific object types (e.g., "show me all tanks" or "show me all rifles").
-
-idx_detections_timestamp - Makes temporal queries fast (e.g., "detections in the last hour").
-
-idx_detections_threat_level - Optimizes queries that filter or sort by threat level.
-
-Specialized Table Indexes
-
-
-### Specialized Table Indexes
-
+### **Image Storage Indexes**
 ```sql
--- Specialized classification indexes
-CREATE INDEX idx_weapon_detections_type ON weapon_detections(weapon_type);
-CREATE INDEX idx_military_vehicle_detections_type ON military_vehicle_detections(vehicle_type);
-CREATE INDEX idx_aircraft_detections_type ON aircraft_detections(aircraft_type);
-CREATE INDEX idx_environmental_hazard_type ON environmental_hazard_detections(hazard_type);
-CREATE INDEX idx_behavior_detections_type ON behavior_detections(behavior_type);
-CREATE INDEX idx_behavior_detections_category ON behavior_detections(behavior_category);
+CREATE INDEX idx_detections_frame_url ON detections(frame_url);
+CREATE INDEX idx_detections_has_jpeg ON detections(detection_id) WHERE detection_frame_jpeg IS NOT NULL;
 ```
+**Purpose**: Optimize image retrieval and storage method queries.
 
-These indexes accelerate queries on the specialized classification tables:
-* Weapon type queries: Quickly find all pistols, rifles, etc.
-* Vehicle type queries: Fast lookup of tanks, BTRs, APCs, etc.
-* Aircraft type queries: Efficient filtering of helicopters, drones, etc.
-* Hazard type queries: Quick access to fire, smoke, explosion records
-* Behavior queries: Fast filtering by both type and category of behavior
-
-Alert and Threat Analysis Indexes
-
-
-### Alert and Threat Analysis Indexes
-
+### **Alert Indexes**
 ```sql
-CREATE INDEX idx_threat_analysis_level ON threat_analysis(threat_level);
-CREATE INDEX idx_threat_analysis_type ON threat_analysis(threat_type);
 CREATE INDEX idx_alerts_detection ON alerts(detection_id);
-CREATE INDEX idx_alerts_type ON alerts(alert_type);
 CREATE INDEX idx_alerts_severity ON alerts(severity);
-CREATE INDEX idx_alerts_category ON alerts(alert_category);
+CREATE INDEX idx_alerts_acknowledged ON alerts(acknowledged);
 ```
+**Purpose**: Fast alert filtering and acknowledgment tracking.
 
-These optimize the alert and threat analysis systems:
-* Threat level/type indexes: Speed up queries that filter threats by level or type
-* Alert indexes: Make it fast to find alerts by detection, type, severity, or category
+---
 
-2. Views
-Views are virtual tables based on the result set of SQL statements. They represent the data in one or more tables but don't store data themselves.
-1. Military Threats View
+## 👁️ **Database Views**
 
-
-### 1. Military Threats View
-
+### **1. Active Weapon Threats View**
 ```sql
-CREATE OR REPLACE VIEW military_threats AS
+CREATE OR REPLACE VIEW active_weapon_threats AS
 SELECT 
     d.detection_id,
     d.timestamp,
-    d.object_category,
     d.object_type,
     d.threat_level,
+    d.confidence,
+    d.bounding_box,
+    d.detection_frame_data,
+    d.frame_url,
+    d.detection_frame_jpeg,
+    d.frame_metadata,
     CASE 
-        WHEN d.object_category = 'military_vehicle' THEN 
-            (SELECT json_build_object('type', mv.vehicle_type, 'class', mv.vehicle_class, 'nationality', mv.nationality)
-             FROM military_vehicle_detections mv WHERE mv.detection_id = d.detection_id)
-        WHEN d.object_category = 'aircraft' THEN
-            (SELECT json_build_object('type', ac.aircraft_type, 'class', ac.aircraft_class, 'nationality', ac.nationality)
-             FROM aircraft_detections ac WHERE ac.detection_id = d.detection_id)
-        WHEN d.object_category = 'weapon' THEN
-            (SELECT json_build_object('type', w.weapon_type, 'in_use', w.in_use)
-             FROM weapon_detections w WHERE w.detection_id = d.detection_id)
-        ELSE NULL
-    END AS details,
+        WHEN d.detection_frame_jpeg IS NOT NULL THEN 'binary_jpeg'
+        WHEN d.frame_url IS NOT NULL THEN 'file_url'
+        WHEN d.detection_frame_data IS NOT NULL THEN 'base64'
+        ELSE 'none'
+    END AS frame_format,
+    w.weapon_type,
+    w.in_use,
+    w.visible_ammunition,
     f.file_path,
-    s.device_id
+    s.device_id,
+    d.metadata,
+    d.system_metrics
 FROM detections d
-JOIN frames f ON d.frame_id = f.frame_id
-JOIN detection_sessions s ON f.session_id = s.session_id
-WHERE d.object_category IN ('military_vehicle', 'aircraft', 'weapon')
-  AND d.threat_level >= 5
+LEFT JOIN weapon_detections w ON d.detection_id = w.detection_id
+LEFT JOIN frames f ON d.frame_id = f.frame_id
+LEFT JOIN detection_sessions s ON f.session_id = s.session_id
+WHERE d.threat_level >= 5
 ORDER BY d.threat_level DESC, d.timestamp DESC;
 ```
+**Purpose**: **Primary view** used by the frontend dashboard to display weapon threats with image format detection.
 
-What This View Does:
-* This view consolidates all military threat detections (vehicles, aircraft, and weapons) with a threat level of 5 or higher.
-* Key Feature: The CASE statement dynamically pulls the appropriate specialized data depending on the object category.
-* JSON Building: It builds a structured JSON object with the most important attributes for each type.
-* Filtering: Only includes high-threat detections (threat_level >= 5).
-* Sorting: Orders results by threat level (highest first) and then by time (newest first).
-
-Use Cases:
-* Tactical overview of military threats
-* Unified dashboard for security personnel
-* Threat monitoring across all military categories
-
-2. Environmental Hazards View
-
-
-
-### 2. Environmental Hazards View
-
+### **2. Weapon Threat Summary View**
 ```sql
-CREATE OR REPLACE VIEW environmental_hazards AS
+CREATE OR REPLACE VIEW weapon_threat_summary AS
 SELECT 
-    d.detection_id,
-    d.timestamp,
+    date_trunc('hour', d.timestamp) AS time_period,
     d.object_type,
-    e.hazard_type,
-    e.intensity,
-    e.spread_rate,
-    e.color,
-    f.file_path,
-    s.device_id
-FROM detections d
-JOIN environmental_hazard_detections e ON d.detection_id = e.detection_id
-JOIN frames f ON d.frame_id = f.frame_id
-JOIN detection_sessions s ON f.session_id = s.session_id
-ORDER BY e.intensity DESC, d.timestamp DESC;
-```
-
-
-What This View Does:
-* This view consolidates information about environmental hazards like fire, smoke, and explosions.
-* Join Structure: Joins the base detection data with the specialized environmental hazard data.
-* Sorting: Orders by intensity (most severe first) and then by time (newest first).
-* Key Fields: Includes critical hazard information like type, intensity, spread rate, and color.
-
-Use Cases:
-* Fire and environmental hazard monitoring
-* Evacuation planning
-* Safety response coordination
-
-3. Violent Behaviors View
-
-
-### 3. Violent Behaviors View
-
-```sql
-CREATE OR REPLACE VIEW violent_behaviors AS
-SELECT 
-    d.detection_id,
-    d.timestamp,
-    d.object_type,
-    b.behavior_type,
-    b.intensity,
-    b.people_involved,
-    b.behavior_category,
-    f.file_path,
-    s.device_id
-FROM detections d
-JOIN behavior_detections b ON d.detection_id = b.detection_id
-JOIN frames f ON d.frame_id = f.frame_id
-JOIN detection_sessions s ON f.session_id = s.session_id
-WHERE b.behavior_category = 'violent'
-ORDER BY b.intensity DESC, d.timestamp DESC;
-```
-
-
-
-What This View Does:
-* This view focuses specifically on violent behavior detections.
-* Filtering: Only includes behaviors categorized as 'violent'
-* Sorting: Prioritizes by intensity (most violent first) and recency
-* Context: Includes count of people involved and specific behavior type
-
-Use Cases:
-* Security monitoring for violent incidents
-*   Personal safety alerts
-* Conflict zone behavior analysis
-
-4. Tactical Situation Summary View
-
-```sql
-CREATE OR REPLACE VIEW tactical_situation_summary AS
-SELECT 
-    date_trunc('minute', d.timestamp) AS time_period,
-    d.object_category,
     COUNT(*) AS detection_count,
     AVG(d.threat_level) AS avg_threat_level,
-    MAX(d.threat_level) AS max_threat_level,
-    ARRAY_AGG(DISTINCT d.object_type) AS detected_types
+    MAX(d.threat_level) AS max_threat_level
 FROM detections d
-WHERE d.timestamp > NOW() - INTERVAL '1 hour'
-GROUP BY time_period, d.object_category
+GROUP BY time_period, d.object_type
 ORDER BY time_period DESC, max_threat_level DESC;
 ```
+**Purpose**: Hourly aggregated statistics for dashboard analytics.
 
+### **3. Recent Alerts View**
+```sql
+CREATE OR REPLACE VIEW recent_alerts AS
+SELECT a.alert_id, a.alert_type, a.severity, a.timestamp, 
+       d.object_type, d.confidence, d.threat_level,
+       f.file_path, s.device_id
+FROM alerts a
+JOIN detections d ON a.detection_id = d.detection_id
+JOIN frames f ON d.frame_id = f.frame_id
+JOIN detection_sessions s ON f.session_id = s.session_id
+WHERE a.acknowledged = FALSE
+ORDER BY a.timestamp DESC;
+```
+**Purpose**: Unacknowledged alerts for real-time notifications.
 
+---
 
-What This View Does:
-* This view provides a time-based aggregated summary of detection activity, grouping by minute and object category.
-* Time Bucketing: Uses date_trunc('minute', timestamp) to group detections by minute
-* Aggregation: Computes count, average threat level, and maximum threat level
-* Array Aggregation: Collects all unique object types detected in each time period
-* Recent Filter: Only includes detections from the past hour
-* Temporal Analysis: Shows how the situation evolves minute by minute
+## 🛡️ **Image Storage Conflict Prevention**
 
-Use Cases:
-* Real-time situation awareness
-* Tactical decision making
-* Threat trend analysis
-* Command center dashboard
+### **Automatic Trigger Protection**
+```sql
+CREATE OR REPLACE FUNCTION prevent_frame_url_conflicts()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- If base64 data is present, clear file URL
+    IF NEW.detection_frame_data IS NOT NULL AND NEW.detection_frame_data != '' THEN
+        NEW.frame_url := NULL;
+    END IF;
+    
+    -- If binary JPEG is present, clear file URL
+    IF NEW.detection_frame_jpeg IS NOT NULL THEN
+        NEW.frame_url := NULL;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-Benefits of These Database Features
-1. Performance: Indexes dramatically speed up query execution time
-2. Abstraction: Views hide complex query logic from application code
-3. Consistency: Views ensure data is retrieved and presented consistently
-4. Simplification: Complex joins and conditions are encapsulated in the database
-5. Security: Views can restrict access to specific data subsets
+CREATE TRIGGER trigger_prevent_frame_url_conflicts
+    BEFORE INSERT OR UPDATE ON detections
+    FOR EACH ROW
+    EXECUTE FUNCTION prevent_frame_url_conflicts();
+```
+**Purpose**: **Prevents image display issues** by ensuring only one image storage method is used per detection.
 
-These database features will make your ARCIS application more responsive, easier to develop, and simpler to maintain as the system grows in complexity and data volume.
+**What This Solves:**
+- ✅ Prevents double `/api/api/` URL issues
+- ✅ Ensures consistent image loading in frontend
+- ✅ Automatically resolves storage method conflicts
+- ✅ Applies to all future INSERT/UPDATE operations
+
+---
+
+## 🔧 **Data Validation Constraints**
+
+```sql
+-- Threat level validation
+ALTER TABLE detections ADD CONSTRAINT check_threat_level 
+CHECK (threat_level >= 0 AND threat_level <= 10);
+
+-- Alert severity validation  
+ALTER TABLE alerts ADD CONSTRAINT check_alert_severity 
+CHECK (severity >= 1 AND severity <= 5);
+
+-- Weapon type validation
+ALTER TABLE detections ADD CONSTRAINT check_weapon_types 
+CHECK (object_type IN ('Knife', 'Pistol', 'weapon', 'rifle'));
+```
+
+---
+
+## 🎯 **API Endpoints & Data Flow**
+
+### **Detection Creation Endpoints**
+1. **`/jetson-detection`** - Jetson Nano devices → Uses base64 storage
+2. **`/raspberry-detection`** - Raspberry Pi devices → Uses base64 storage
+3. **`/upload`** - File upload → Uses file URL storage
+4. **`/upload-jpeg`** - Binary upload → Uses binary JPEG storage
+5. **`/manual`** - Manual entry → No image data
+
+### **Frontend Image Loading Priority**
+The `ExpandThreatModal.tsx` component loads images in this order:
+1. **Binary JPEG endpoint** (if `has_binary_jpeg` is true)
+2. **File URL** (if `frame_url` is not null)
+3. **Base64 data** (if `detection_frame_data` is not null)  
+4. **API fallback** (last resort)
+
+---
+
+## 📈 **Performance Characteristics**
+
+- **Base64 Storage**: Fast loading, larger database size
+- **File Storage**: Smaller database, requires file system management
+- **Binary JPEG**: Best performance, direct database storage
+- **Indexes**: Sub-second query performance for typical workloads
+- **Views**: Pre-optimized complex queries for dashboard
+
+---
+
+## 🔄 **Maintenance & Best Practices**
+
+### **Regular Cleanup**
+```sql
+-- Find and clean up orphaned data
+DELETE FROM alerts WHERE detection_id NOT IN (SELECT detection_id FROM detections);
+DELETE FROM weapon_detections WHERE detection_id NOT IN (SELECT detection_id FROM detections);
+```
+
+### **Performance Monitoring**
+```sql
+-- Check index usage
+SELECT schemaname, tablename, attribs, n_distinct, correlation 
+FROM pg_stats WHERE tablename = 'detections';
+
+-- Monitor trigger performance
+SELECT * FROM pg_stat_user_triggers WHERE schemaname = 'arcis';
+```
+
+---
+
+## 🚀 **System Benefits**
+
+1. **Reliability**: Automatic conflict prevention ensures consistent image display
+2. **Performance**: Optimized indexes for weapon detection queries
+3. **Scalability**: JSONB fields allow flexible metadata storage
+4. **Maintainability**: Clear separation of concerns between tables
+5. **Flexibility**: Multiple image storage options for different use cases
+
+**This schema is specifically designed for weapon detection systems with robust image handling capabilities.**

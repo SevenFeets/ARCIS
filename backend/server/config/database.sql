@@ -218,3 +218,35 @@ JOIN frames f ON d.frame_id = f.frame_id
 JOIN detection_sessions s ON f.session_id = s.session_id
 WHERE d.timestamp > NOW() - INTERVAL '5 minutes'
 ORDER BY d.timestamp DESC;
+
+-- ============================================================================
+-- IMAGE STORAGE CONFLICT PREVENTION
+-- ============================================================================
+-- This trigger prevents frame_url conflicts with base64/binary data
+-- Ensures only ONE image storage method is used per detection
+
+CREATE OR REPLACE FUNCTION prevent_frame_url_conflicts()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- If detection_frame_data (base64) is being set, clear frame_url
+    IF NEW.detection_frame_data IS NOT NULL AND NEW.detection_frame_data != '' THEN
+        NEW.frame_url := NULL;
+        RAISE NOTICE 'Cleared frame_url because detection_frame_data is present for detection_id %', NEW.detection_id;
+    END IF;
+    
+    -- If detection_frame_jpeg (binary) is being set, clear frame_url
+    IF NEW.detection_frame_jpeg IS NOT NULL THEN
+        NEW.frame_url := NULL;
+        RAISE NOTICE 'Cleared frame_url because detection_frame_jpeg is present for detection_id %', NEW.detection_id;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for INSERT and UPDATE operations
+DROP TRIGGER IF EXISTS trigger_prevent_frame_url_conflicts ON detections;
+CREATE TRIGGER trigger_prevent_frame_url_conflicts
+    BEFORE INSERT OR UPDATE ON detections
+    FOR EACH ROW
+    EXECUTE FUNCTION prevent_frame_url_conflicts();
