@@ -219,7 +219,7 @@ router.get('/threats', async (req, res) => {
             frame_url: threat.frame_url, // Include frame URL for file storage (legacy)
             has_binary_jpeg: !!threat.detection_frame_jpeg, // Indicate if binary JPEG is available
             frame_metadata: threat.frame_metadata, // Include JPEG metadata
-            jpeg_endpoint: threat.detection_frame_jpeg ? `/api/detections/${threat.detection_id}/jpeg` : null // Direct JPEG endpoint
+            jpeg_endpoint: threat.detection_frame_jpeg ? `/detections/${threat.detection_id}/jpeg` : null // Direct JPEG endpoint
         }));
 
         res.json({
@@ -984,7 +984,7 @@ router.get('/all', async (req, res) => {
             frame_url: detection.frame_url, // Include frame URL for file storage (legacy)
             has_binary_jpeg: !!detection.detection_frame_jpeg, // Indicate if binary JPEG is available
             frame_metadata: detection.frame_metadata, // Include JPEG metadata
-            jpeg_endpoint: detection.detection_frame_jpeg ? `/api/detections/${detection.detection_id}/jpeg` : null // Direct JPEG endpoint
+            jpeg_endpoint: detection.detection_frame_jpeg ? `/detections/${detection.detection_id}/jpeg` : null // Direct JPEG endpoint
         }));
 
         res.json({
@@ -1359,7 +1359,7 @@ router.post('/raspberry-detection', validateApiKey, uploadSingle, async (req, re
                     threat_level: threatLevel,
                     confidence: Math.round(standardizedDetection.confidence * 100),
                     has_binary_jpeg: true, // Flag for frontend
-                    jpeg_endpoint: `/api/detections/${detectionResult.detection_id}/jpeg`, // Direct JPEG endpoint
+                    jpeg_endpoint: `/detections/${detectionResult.detection_id}/jpeg`, // Direct JPEG endpoint
                     storage_method: 'binary_jpeg_database'
                 });
             }
