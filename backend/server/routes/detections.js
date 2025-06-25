@@ -610,7 +610,7 @@ router.get('/:id/frame', async (req, res) => {
         const { supabase } = require('../config/supabase');
         const { data, error } = await supabase
             .from('detections')
-            .select('detection_id, detection_frame_data, timestamp')
+            .select('detection_id, detection_frame_data, detection_frame_jpeg, timestamp')
             .eq('detection_id', detectionId)
             .single();
 
@@ -621,7 +621,36 @@ router.get('/:id/frame', async (req, res) => {
             });
         }
 
-        if (!data.detection_frame_data) {
+        let frameData = null;
+
+        // Priority 1: Use legacy detection_frame_data if available
+        if (data.detection_frame_data) {
+            console.log('📸 Using legacy detection_frame_data');
+            frameData = data.detection_frame_data;
+        }
+        // Priority 2: Convert binary JPEG to base64 for fallback
+        else if (data.detection_frame_jpeg) {
+            console.log('📸 Converting binary JPEG to base64 for legacy API');
+
+            let jpegBuffer;
+            if (Buffer.isBuffer(data.detection_frame_jpeg)) {
+                jpegBuffer = data.detection_frame_jpeg;
+            } else if (data.detection_frame_jpeg && data.detection_frame_jpeg.type === 'Buffer' && Array.isArray(data.detection_frame_jpeg.data)) {
+                // Supabase returns Buffer as {type: 'Buffer', data: [array]}
+                jpegBuffer = Buffer.from(data.detection_frame_jpeg.data);
+            } else if (typeof data.detection_frame_jpeg === 'string') {
+                jpegBuffer = Buffer.from(data.detection_frame_jpeg, 'base64');
+            }
+
+            if (jpegBuffer) {
+                // Convert to base64 data URL
+                const base64Data = jpegBuffer.toString('base64');
+                frameData = `data:image/jpeg;base64,${base64Data}`;
+                console.log(`✅ Converted JPEG buffer (${jpegBuffer.length} bytes) to base64 data URL`);
+            }
+        }
+
+        if (!frameData) {
             return res.status(404).json({
                 success: false,
                 error: 'No frame data available for this detection'
@@ -631,7 +660,7 @@ router.get('/:id/frame', async (req, res) => {
         res.json({
             success: true,
             detection_id: data.detection_id,
-            frame_data: data.detection_frame_data,
+            frame_data: frameData,
             timestamp: data.timestamp,
             message: 'Frame data retrieved successfully'
         });
