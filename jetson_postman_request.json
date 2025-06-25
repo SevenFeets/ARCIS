@@ -1,0 +1,37 @@
+{
+    "info": {
+        "name": "ARCIS Jetson Nano Detection Test",
+        "description": "Test request for Jetson Nano weapon detection endpoint with base64 image"
+    },
+    "request": {
+        "method": "POST",
+        "header": [
+            {
+                "key": "Content-Type",
+                "value": "application/json"
+            },
+            {
+                "key": "X-API-Key",
+                "value": "test-jetson-api-key"
+            }
+        ],
+        "body": {
+            "mode": "raw",
+            "raw": "{\n  \"detectedObjects\": [\n    {\n      \"class\": 0,\n      \"label\": \"weapon\",\n      \"confidence\": 0.92,\n      \"bbox\": [150, 200, 80, 120]\n    }\n  ],\n  \"frame\": \"{{WEAPON_DETECTION_BASE64}}\",\n  \"systemMetrics\": {\n    \"cpu_usage\": 65.2,\n    \"gpu_usage\": 78.5,\n    \"ram_usage\": 58.7,\n    \"disk_usage\": 42.3,\n    \"cpu_temp\": 72.1,\n    \"gpu_temp\": 68.9,\n    \"cpu_voltage\": 1.25,\n    \"gpu_voltage\": 1.15,\n    \"network_status\": \"Connected\",\n    \"network_speed\": 100,\n    \"network_signal_strength\": -45,\n    \"detection_latency\": 125,\n    \"distance_to_detection\": 3.2,\n    \"alert_played\": true,\n    \"database_status\": \"Connected\"\n  },\n  \"timestamp\": \"2024-12-08T10:30:45Z\",\n  \"deviceId\": \"jetson-nano-test-001\"\n}"
+        },
+        "url": {
+            "raw": "http://localhost:5000/api/detections/jetson-detection",
+            "protocol": "http",
+            "host": [
+                "localhost"
+            ],
+            "port": "5000",
+            "path": [
+                "api",
+                "detections",
+                "jetson-detection"
+            ]
+        }
+    },
+    "response": []
+}

@@ -23,3 +23,11 @@ storage/
 .vscode/
 *.swp
 *.swo 
+
+server/config/database-old.sql
+server/fix_frame_url.sql
+server/fix_detection_26.cjs
+server/fix_frame_url_issue.cjs
+server/debug_threats_endpoint.cjs
+server/debug_frontend_data.cjs
+server/apply_preventive_fix.cjs
