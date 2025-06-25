@@ -103,7 +103,7 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
         // Priority 4: Try binary JPEG endpoint by ID (fallback)
         try {
             console.log('🔄 Trying binary JPEG endpoint for threat ID:', threat.id);
-            const jpegUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/detections/${threat.id}/jpeg`;
+            const jpegUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/detections/${threat.id}/jpeg`;
             console.log('🔗 Trying JPEG URL:', jpegUrl);
 
             // Test if the endpoint returns an image
