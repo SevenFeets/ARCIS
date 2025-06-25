@@ -1999,7 +1999,6 @@ router.get('/:id/jpeg', async (req, res) => {
 
         // Set appropriate headers for JPEG
         res.setHeader('Content-Type', 'image/jpeg');
-        res.setHeader('Content-Length', data.detection_frame_jpeg.length);
         res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
 
         // Override CORS policy for images to allow cross-origin loading
@@ -2012,22 +2011,39 @@ router.get('/:id/jpeg', async (req, res) => {
 
         // Handle different data formats from Supabase
         let jpegBuffer;
+
+        console.log('🔍 Debug JPEG data format:', {
+            type: typeof data.detection_frame_jpeg,
+            isBuffer: Buffer.isBuffer(data.detection_frame_jpeg),
+            hasTypeProperty: data.detection_frame_jpeg && data.detection_frame_jpeg.type,
+            firstBytes: data.detection_frame_jpeg ? (Buffer.isBuffer(data.detection_frame_jpeg) ? data.detection_frame_jpeg.slice(0, 4).toString('hex') : 'not-buffer') : 'null'
+        });
+
         if (Buffer.isBuffer(data.detection_frame_jpeg)) {
             // Already a Buffer
+            console.log('📦 Using existing Buffer');
             jpegBuffer = data.detection_frame_jpeg;
         } else if (data.detection_frame_jpeg && data.detection_frame_jpeg.type === 'Buffer' && Array.isArray(data.detection_frame_jpeg.data)) {
             // Supabase returns Buffer as {type: 'Buffer', data: [array]}
+            console.log('🔄 Converting from Supabase Buffer format');
             jpegBuffer = Buffer.from(data.detection_frame_jpeg.data);
         } else if (typeof data.detection_frame_jpeg === 'string') {
             // String data (base64 or other)
+            console.log('📝 Converting from string (base64)');
             jpegBuffer = Buffer.from(data.detection_frame_jpeg, 'base64');
         } else {
-            console.error('Unknown JPEG data format:', typeof data.detection_frame_jpeg);
+            console.error('❌ Unknown JPEG data format:', typeof data.detection_frame_jpeg);
             return res.status(500).json({
                 success: false,
                 error: 'Invalid JPEG data format'
             });
         }
+
+        console.log('📸 Final JPEG buffer:', {
+            length: jpegBuffer.length,
+            firstBytes: jpegBuffer.slice(0, 4).toString('hex'),
+            isValidJPEG: jpegBuffer.slice(0, 2).toString('hex') === 'ffd8'
+        });
 
         // Update Content-Length with actual buffer size
         res.setHeader('Content-Length', jpegBuffer.length);
