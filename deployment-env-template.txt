@@ -1,0 +1,29 @@
+# RAILWAY BACKEND ENVIRONMENT VARIABLES
+# Copy these to your new Railway project
+
+DB_HOST=aws-0-us-west-1.pooler.supabase.com
+DB_PASSWORD=YOUR_SUPABASE_PASSWORD_HERE
+DB_NAME=postgres
+DB_USER=postgres.emjcotfxcqewhhvhjjof
+DB_PORT=6543
+API_KEY_JETSON=test-jetson-key
+API_KEY_RASPBERRY=test-raspberry-pi-key
+NODE_ENV=production
+
+# VERCEL FRONTEND ENVIRONMENT VARIABLES
+# Copy these to your new Vercel project
+# IMPORTANT: Update VITE_API_URL with your new Railway URL after backend deployment
+
+VITE_API_URL=https://YOUR_NEW_RAILWAY_URL_HERE/api
+VITE_FIREBASE_API_KEY=AIzaSyADmJmV2ZEEgrkV5YBcvBiVYBhVhzkvgBM
+VITE_FIREBASE_AUTH_DOMAIN=arcis-dev-a536c.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=arcis-dev-a536c
+VITE_FIREBASE_STORAGE_BUCKET=arcis-dev-a536c.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=103762488919
+VITE_FIREBASE_APP_ID=1:103762488919:web:42a4fe2644b1266a7e3d12
+
+# DEPLOYMENT ORDER:
+# 1. Deploy Railway backend first
+# 2. Get the new Railway URL
+# 3. Update VITE_API_URL with the new Railway URL
+# 4. Deploy Vercel frontend with updated URL 

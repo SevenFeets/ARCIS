@@ -56,19 +56,29 @@ The Railway deployment is running an **older version** of the backend code that 
 3. detection_frame_data (base64 - fallback)
 ```
 
-## 🎯 **Next Actions**
+## 🎯 **Next Actions - FRESH DEPLOYMENTS**
 
-1. **Deploy Backend to Railway**
-   - Push latest code to Railway
-   - Verify binary JPEG endpoints work
+### **✅ RECOMMENDED APPROACH: Fresh Deployments**
+Due to persistent caching issues, creating new projects is the best solution:
 
-2. **Deploy Frontend to Vercel**
-   - Redeploy with updated API URL
-   - Test image display functionality
+1. **Create New Railway Project**
+   - Deploy backend with latest binary JPEG code
+   - Use `backend/server` as root directory
+   - Set all environment variables fresh
+
+2. **Create New Vercel Project**
+   - Deploy frontend with updated API URL
+   - Use `frontend` as root directory
+   - Configure environment variables
 
 3. **Verify End-to-End**
-   - Test detection frame display
-   - Verify all image storage methods work
+   - Test binary JPEG endpoints
+   - Verify detection frame display
+   - Confirm all features work
+
+### **📋 Resources Created:**
+- `FRESH_DEPLOYMENT_GUIDE.md` - Complete deployment instructions
+- `deployment-env-template.txt` - Environment variable templates
 
 ## 📊 **Current Data Status**
 - **Detections in Database**: 2 active threats
