@@ -979,7 +979,12 @@ router.get('/all', async (req, res) => {
             device_id: '1', // Add device ID if available
             bounding_box: detection.bounding_box || { x: 0, y: 0, width: 100, height: 100 },
             comments: [], // Add comments if available
-            metadata: detection.metadata || {}
+            metadata: detection.metadata || {},
+            detection_frame_data: detection.detection_frame_data, // Include base64 frame data if available (legacy)
+            frame_url: detection.frame_url, // Include frame URL for file storage (legacy)
+            has_binary_jpeg: !!detection.detection_frame_jpeg, // Indicate if binary JPEG is available
+            frame_metadata: detection.frame_metadata, // Include JPEG metadata
+            jpeg_endpoint: detection.detection_frame_jpeg ? `/api/detections/${detection.detection_id}/jpeg` : null // Direct JPEG endpoint
         }));
 
         res.json({
@@ -1223,27 +1228,80 @@ router.post('/jetson-detection', async (req, res) => {
     }
 });
 
-// POST - Receive detection data from Raspberry Pi + Google Cloud Vision (Standardized Format)
-router.post('/raspberry-detection', async (req, res) => {
+// POST - Receive detection data from Raspberry Pi + Google Cloud Vision (Updated for JPG Files)
+router.post('/raspberry-detection', validateApiKey, uploadSingle, async (req, res) => {
     try {
+
         const {
             cloudVisionResults,
-            frame, // base64 encoded image
             systemMetrics,
             timestamp,
             deviceId
         } = req.body;
 
-        console.log('Received Raspberry Pi detection:', {
-            resultsCount: cloudVisionResults.length,
+        console.log('📸 Raspberry Pi detection with JPG file upload:', {
+            resultsCount: Array.isArray(cloudVisionResults) ? cloudVisionResults.length : 0,
+            hasFile: !!req.file,
+            fileInfo: req.file ? {
+                filename: req.file.filename,
+                size: req.file.size,
+                mimetype: req.file.mimetype
+            } : null,
             timestamp,
             deviceId
         });
 
+        // Parse cloudVisionResults if it's a string
+        let parsedResults;
+        try {
+            parsedResults = typeof cloudVisionResults === 'string'
+                ? JSON.parse(cloudVisionResults)
+                : cloudVisionResults || [];
+        } catch (parseError) {
+            console.error('Error parsing cloudVisionResults:', parseError);
+            parsedResults = [];
+        }
+
+        // Handle uploaded JPG file - store as binary JPEG for best performance
+        let jpegBuffer = null;
+        let frameMetadata = null;
+
+        if (req.file) {
+            // Validate file type
+            if (!req.file.mimetype.includes('jpeg') && !req.file.mimetype.includes('jpg')) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid file type for Raspberry Pi',
+                    message: 'Only JPEG/JPG files are supported',
+                    received: req.file.mimetype
+                });
+            }
+
+            // Read binary JPEG data
+            jpegBuffer = fs.readFileSync(req.file.path);
+            frameMetadata = {
+                original_name: req.file.originalname,
+                size: req.file.size,
+                mimetype: req.file.mimetype,
+                format: 'jpeg',
+                uploaded_at: new Date().toISOString(),
+                device_type: 'raspberry_pi'
+            };
+
+            console.log(`📸 JPG file processed: ${jpegBuffer.length} bytes`);
+
+            // Clean up uploaded file since we stored it in memory
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (cleanupError) {
+                console.warn('File cleanup warning:', cleanupError.message);
+            }
+        }
+
         // Convert Google Cloud Vision format to standard incoming format and process each detection
         const results = [];
 
-        for (const result of cloudVisionResults) {
+        for (const result of parsedResults) {
             // Map Google Cloud Vision format to standard format
             const standardizedDetection = {
                 device_id: deviceId,
@@ -1262,7 +1320,8 @@ router.post('/raspberry-detection', async (req, res) => {
                     bounding_poly: result.boundingPoly,
                     system_metrics: systemMetrics,
                     original_timestamp: timestamp,
-                    frame_data: frame
+                    storage_method: 'binary_jpeg_database',
+                    file_info: frameMetadata
                 }
             };
 
@@ -1270,7 +1329,7 @@ router.post('/raspberry-detection', async (req, res) => {
             if (isWeaponDetection(standardizedDetection.object_type)) {
                 const threatLevel = calculateThreatLevel(standardizedDetection.object_type, standardizedDetection.confidence);
 
-                // Save to database using Supabase
+                // Save to database using Supabase with binary JPEG storage
                 const { supabase } = require('../config/supabase');
                 const { data: detectionResult, error: detectionError } = await supabase
                     .from('detections')
@@ -1282,7 +1341,8 @@ router.post('/raspberry-detection', async (req, res) => {
                         bounding_box: standardizedDetection.bounding_box,
                         threat_level: threatLevel,
                         metadata: standardizedDetection.metadata,
-                        detection_frame_data: frame || null, // Base64 encoded frame from Raspberry Pi
+                        detection_frame_jpeg: jpegBuffer, // Store binary JPEG data (best performance)
+                        frame_metadata: frameMetadata, // Image metadata
                         system_metrics: systemMetrics || {}
                     }])
                     .select()
@@ -1297,17 +1357,23 @@ router.post('/raspberry-detection', async (req, res) => {
                     detection_id: detectionResult.detection_id,
                     weapon_type: standardizedDetection.object_type,
                     threat_level: threatLevel,
-                    confidence: Math.round(standardizedDetection.confidence * 100)
+                    confidence: Math.round(standardizedDetection.confidence * 100),
+                    has_binary_jpeg: true, // Flag for frontend
+                    jpeg_endpoint: `/api/detections/${detectionResult.detection_id}/jpeg`, // Direct JPEG endpoint
+                    storage_method: 'binary_jpeg_database'
                 });
             }
         }
 
         res.status(201).json({
             success: true,
-            message: 'Raspberry Pi detection data processed successfully',
+            message: 'Raspberry Pi detection data with JPG file processed successfully',
             processed_detections: results.length,
             detections: results,
-            device_id: deviceId
+            device_id: deviceId,
+            file_processed: !!req.file,
+            jpeg_size: jpegBuffer ? jpegBuffer.length : 0,
+            storage_method: 'binary_jpeg_database'
         });
 
     } catch (error) {

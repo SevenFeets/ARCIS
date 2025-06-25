@@ -1,0 +1,19 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Test files
+test_raspberry_pi_upload.cjs
+debug_*.cjs
+fix_*.cjs
+
+# Uploads directory
+uploads/
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
