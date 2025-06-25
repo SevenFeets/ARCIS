@@ -2002,6 +2002,10 @@ router.get('/:id/jpeg', async (req, res) => {
         res.setHeader('Content-Length', data.detection_frame_jpeg.length);
         res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
 
+        // Override CORS policy for images to allow cross-origin loading
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
         if (data.frame_metadata && data.frame_metadata.original_name) {
             res.setHeader('Content-Disposition', `inline; filename="${data.frame_metadata.original_name}"`);
         }
