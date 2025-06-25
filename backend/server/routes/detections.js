@@ -2010,8 +2010,30 @@ router.get('/:id/jpeg', async (req, res) => {
             res.setHeader('Content-Disposition', `inline; filename="${data.frame_metadata.original_name}"`);
         }
 
+        // Handle different data formats from Supabase
+        let jpegBuffer;
+        if (Buffer.isBuffer(data.detection_frame_jpeg)) {
+            // Already a Buffer
+            jpegBuffer = data.detection_frame_jpeg;
+        } else if (data.detection_frame_jpeg && data.detection_frame_jpeg.type === 'Buffer' && Array.isArray(data.detection_frame_jpeg.data)) {
+            // Supabase returns Buffer as {type: 'Buffer', data: [array]}
+            jpegBuffer = Buffer.from(data.detection_frame_jpeg.data);
+        } else if (typeof data.detection_frame_jpeg === 'string') {
+            // String data (base64 or other)
+            jpegBuffer = Buffer.from(data.detection_frame_jpeg, 'base64');
+        } else {
+            console.error('Unknown JPEG data format:', typeof data.detection_frame_jpeg);
+            return res.status(500).json({
+                success: false,
+                error: 'Invalid JPEG data format'
+            });
+        }
+
+        // Update Content-Length with actual buffer size
+        res.setHeader('Content-Length', jpegBuffer.length);
+
         // Send the binary JPEG data
-        res.send(Buffer.from(data.detection_frame_jpeg));
+        res.send(jpegBuffer);
 
     } catch (error) {
         console.error('JPEG serving error:', error);
