@@ -56,7 +56,12 @@ app.get("/api", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
-    res.json({ message: "Server is running!", timestamp: new Date().toISOString() });
+    res.json({
+        message: "Server is running!",
+        version: "2.1.0",
+        features: ["binary_jpeg_support", "raspberry_pi_jpg_upload", "multi_storage_methods"],
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Use detection routes
@@ -64,6 +69,7 @@ app.use('/api/detections', detectionsRouter);
 
 // Start server
 const PORT = process.env.PORT || 5000;
+console.log('🚀 ARCIS Backend v2.1 - Binary JPEG Support Enabled');
 const HOST = process.env.HOST || '0.0.0.0';
 
 app.listen(PORT, HOST, () => {
