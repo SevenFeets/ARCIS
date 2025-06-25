@@ -275,7 +275,38 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
                                                 console.error('❌ Image failed to load:', e);
                                                 console.log('Frame data format:', frameData.substring(0, 100));
                                                 console.log('Frame data length:', frameData.length);
-                                                setFrameError('Image failed to display');
+
+                                                // If this was a binary JPEG URL that failed, try fallback methods
+                                                if (frameData.includes('/jpeg')) {
+                                                    console.log('🔄 Binary JPEG failed, trying fallback methods...');
+                                                    setFrameData(null);
+                                                    setFrameError(null);
+                                                    setFrameLoading(true);
+
+                                                    // Try legacy API as fallback
+                                                    detectionsAPI.getDetectionFrame(threat.id)
+                                                        .then(response => {
+                                                            if (response.data && response.data.frame_data) {
+                                                                console.log('✅ Fallback: Frame data found via API');
+                                                                const base64Url = response.data.frame_data.startsWith('data:')
+                                                                    ? response.data.frame_data
+                                                                    : `data:image/png;base64,${response.data.frame_data}`;
+                                                                setFrameData(base64Url);
+                                                            } else {
+                                                                console.error('❌ Fallback: No frame_data in API response');
+                                                                setFrameError('No frame data available');
+                                                            }
+                                                        })
+                                                        .catch(error => {
+                                                            console.error('❌ Fallback: Error fetching frame data from API:', error);
+                                                            setFrameError('Failed to fetch frame data');
+                                                        })
+                                                        .finally(() => {
+                                                            setFrameLoading(false);
+                                                        });
+                                                } else {
+                                                    setFrameError('Image failed to display');
+                                                }
                                             }}
                                         />
                                         <Text fontSize="xs" color="gray.500" mt={2} textAlign="center">
