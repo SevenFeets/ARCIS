@@ -171,7 +171,7 @@ function LoginForm() {
                         type="email"
                         placeholder="your.email@example.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                     />
                 </FormControl>
                 <FormControl isRequired>
@@ -180,7 +180,7 @@ function LoginForm() {
                         type="password"
                         placeholder="********"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                     />
                 </FormControl>
                 <Button
@@ -285,7 +285,7 @@ function RegisterForm() {
                     <Input
                         placeholder="Your full name"
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                     />
                 </FormControl>
                 <FormControl isRequired>
@@ -294,7 +294,7 @@ function RegisterForm() {
                         type="email"
                         placeholder="your.email@example.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                     />
                 </FormControl>
                 <FormControl isRequired>
@@ -303,7 +303,7 @@ function RegisterForm() {
                         type="password"
                         placeholder="********"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                     />
                 </FormControl>
                 <FormControl isRequired>
@@ -312,7 +312,7 @@ function RegisterForm() {
                         type="password"
                         placeholder="********"
                         value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                     />
                 </FormControl>
                 <Button
