@@ -2178,6 +2178,16 @@ router.get('/:id/jpeg', async (req, res) => {
             });
         }
 
+        // Check if jpegBuffer is null or invalid
+        if (!jpegBuffer || jpegBuffer.length === 0) {
+            console.error('❌ JPEG buffer is null or empty');
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to process JPEG data',
+                details: 'JPEG buffer is null or empty'
+            });
+        }
+
         console.log('📸 Final JPEG buffer:', {
             length: jpegBuffer.length,
             firstBytes: jpegBuffer.slice(0, 4).toString('hex'),
