@@ -2009,6 +2009,36 @@ router.post('/upload-jpeg', validateApiKey, uploadSingle, async (req, res) => {
         const base64JpegData = jpegBuffer.toString('base64');
         console.log('📸 Converted to base64, length:', base64JpegData.length);
 
+        // Parse additional metadata fields from request body
+        const parsedMetadata = req.body.metadata ?
+            (typeof req.body.metadata === 'string' ? JSON.parse(req.body.metadata) : req.body.metadata) : {};
+
+        // Extract device information from form data or metadata
+        const deviceId = req.body.device_id || parsedMetadata.device_id || req.deviceId;
+        const deviceName = req.body.device_name || parsedMetadata.device_name;
+        const deviceType = req.body.device_type || parsedMetadata.device_type;
+
+        // Debug logging
+        console.log('🔍 Device info extraction debug:', {
+            'req.body.device_id': req.body.device_id,
+            'req.body.device_name': req.body.device_name,
+            'req.body.device_type': req.body.device_type,
+            'parsedMetadata': parsedMetadata,
+            'final_deviceId': deviceId,
+            'final_deviceName': deviceName,
+            'final_deviceType': deviceType
+        });
+
+        // Fallback: try to get device info from system_metrics if metadata is empty
+        let systemMetricsData = null;
+        if (system_metrics) {
+            systemMetricsData = typeof system_metrics === 'string' ? JSON.parse(system_metrics) : system_metrics;
+        }
+
+        const finalDeviceId = deviceId || (systemMetricsData && systemMetricsData.device_id);
+        const finalDeviceName = deviceName || (systemMetricsData && systemMetricsData.device_name);
+        const finalDeviceType = deviceType || (systemMetricsData && systemMetricsData.device_type);
+
         const detectionData = {
             object_category: 'weapon',
             object_type: object_type,
@@ -2020,8 +2050,11 @@ router.post('/upload-jpeg', validateApiKey, uploadSingle, async (req, res) => {
             system_metrics: system_metrics ? (typeof system_metrics === 'string' ? JSON.parse(system_metrics) : system_metrics) : null,
             timestamp: timestamp || new Date().toISOString(),
             metadata: {
-                device_id: device_id || req.deviceId,
-                storage_method: 'base64_jpeg_database'
+                device_id: finalDeviceId,
+                device_name: finalDeviceName,
+                device_type: finalDeviceType,
+                storage_method: 'base64_jpeg_database',
+                ...parsedMetadata // Include any additional metadata
             }
         };
 
