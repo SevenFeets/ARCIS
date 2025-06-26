@@ -1283,6 +1283,18 @@ router.post('/jetson-detection', async (req, res) => {
             if (isWeaponDetection(standardizedDetection.object_type)) {
                 const threatLevel = calculateThreatLevel(standardizedDetection.object_type, standardizedDetection.confidence);
 
+                // Format frame data as proper data URL for frontend display
+                let formattedFrameData = null;
+                if (frame) {
+                    // Check if frame already has data URL prefix
+                    if (frame.startsWith('data:image/')) {
+                        formattedFrameData = frame;
+                    } else {
+                        // Add proper data URL prefix for JPEG
+                        formattedFrameData = `data:image/jpeg;base64,${frame}`;
+                    }
+                }
+
                 // Save to database using Supabase
                 const { supabase } = require('../config/supabase');
                 const { data: detectionResult, error: detectionError } = await supabase
@@ -1295,8 +1307,10 @@ router.post('/jetson-detection', async (req, res) => {
                         bounding_box: standardizedDetection.bounding_box,
                         threat_level: threatLevel,
                         metadata: standardizedDetection.metadata,
-                        detection_frame_data: frame || null, // Base64 encoded frame from Jetson
-                        system_metrics: systemMetrics || {}
+                        detection_frame_data: formattedFrameData, // Properly formatted data URL
+                        system_metrics: systemMetrics || {},
+                        device_id: deviceId, // Store device ID
+                        device_name: req.body.deviceName || 'jetson nano' // Store device name
                     }])
                     .select()
                     .single();
