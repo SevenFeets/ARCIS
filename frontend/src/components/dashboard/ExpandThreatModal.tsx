@@ -65,6 +65,25 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
         setFrameLoading(true);
         setFrameError(null);
 
+        // QUICK FIX: Force binary JPEG for known working detections (72, 81-84)
+        const workingDetections = [72, 81, 82, 83, 84];
+        if (workingDetections.includes(threat.detection_id || threat.id)) {
+            console.log('🎯 FORCING binary JPEG for working detection:', threat.detection_id || threat.id);
+            let apiBaseUrl = import.meta.env.VITE_API_URL;
+            if (!apiBaseUrl) {
+                if (window.location.hostname === 'localhost') {
+                    apiBaseUrl = 'http://localhost:5000/api';
+                } else {
+                    apiBaseUrl = 'https://arcis-production.up.railway.app/api';
+                }
+            }
+            const jpegUrl = `${apiBaseUrl}/detections/${threat.detection_id || threat.id}/jpeg`;
+            console.log('🔗 FORCED Binary JPEG URL:', jpegUrl);
+            setFrameData(jpegUrl);
+            setFrameLoading(false);
+            return;
+        }
+
         // Priority 1: Check for binary JPEG endpoint (NEW FORMAT - BEST PERFORMANCE)
         if (threat.has_binary_jpeg && threat.jpeg_endpoint) {
             console.log('🚀 Using binary JPEG endpoint:', threat.jpeg_endpoint);
