@@ -232,25 +232,39 @@ router.get('/threats', async (req, res) => {
         }
 
         // Format for frontend
-        const formattedThreats = data.map(threat => ({
-            id: threat.detection_id,
-            detection_id: threat.detection_id,
-            weapon_type: threat.object_type || 'Unknown',
-            confidence: threat.confidence || 0,
-            threat_level: threat.threat_level || 6,
-            location: 'Unknown',
-            timestamp: threat.timestamp || new Date().toISOString(),
-            device: 'ARCIS Device',
-            device_id: '1',
-            bounding_box: threat.bounding_box || { x: 0, y: 0, width: 100, height: 100 },
-            comments: [],
-            metadata: threat.metadata || {},
-            detection_frame_data: threat.detection_frame_data, // Include base64 frame data if available (legacy)
-            frame_url: threat.frame_url, // Include frame URL for file storage (legacy)
-            has_binary_jpeg: !!threat.detection_frame_jpeg, // Indicate if binary JPEG is available
-            frame_metadata: threat.frame_metadata, // Include JPEG metadata
-            jpeg_endpoint: threat.detection_frame_jpeg ? `/detections/${threat.detection_id}/jpeg` : null // Direct JPEG endpoint
-        }));
+        const formattedThreats = data.map(threat => {
+            // Format base64 frame data properly for frontend display
+            let formattedFrameData = null;
+            if (threat.detection_frame_data) {
+                // Check if it's already a data URL
+                if (threat.detection_frame_data.startsWith('data:')) {
+                    formattedFrameData = threat.detection_frame_data;
+                } else {
+                    // Convert raw base64 to proper data URL format
+                    formattedFrameData = `data:image/jpeg;base64,${threat.detection_frame_data}`;
+                }
+            }
+
+            return {
+                id: threat.detection_id,
+                detection_id: threat.detection_id,
+                weapon_type: threat.object_type || 'Unknown',
+                confidence: threat.confidence || 0,
+                threat_level: threat.threat_level || 6,
+                location: 'Unknown',
+                timestamp: threat.timestamp || new Date().toISOString(),
+                device: 'ARCIS Device',
+                device_id: '1',
+                bounding_box: threat.bounding_box || { x: 0, y: 0, width: 100, height: 100 },
+                comments: [],
+                metadata: threat.metadata || {},
+                detection_frame_data: formattedFrameData, // Properly formatted base64 data URL
+                frame_url: threat.frame_url, // Include frame URL for file storage (legacy)
+                has_binary_jpeg: !!threat.detection_frame_jpeg, // Indicate if binary JPEG is available
+                frame_metadata: threat.frame_metadata, // Include JPEG metadata
+                jpeg_endpoint: threat.detection_frame_jpeg ? `/detections/${threat.detection_id}/jpeg` : null // Direct JPEG endpoint
+            };
+        });
 
         res.json({
             active_weapon_threats: formattedThreats,
@@ -1072,25 +1086,39 @@ router.get('/all', async (req, res) => {
         }
 
         // Format for frontend
-        const formattedDetections = data.map(detection => ({
-            id: detection.detection_id,
-            detection_id: detection.detection_id,
-            weapon_type: detection.object_type || 'Unknown',
-            confidence: detection.confidence || 0,
-            threat_level: detection.threat_level || 1,
-            location: 'Unknown', // Add location field if available
-            timestamp: detection.timestamp || new Date().toISOString(),
-            device: 'ARCIS Device', // Add device name if available
-            device_id: '1', // Add device ID if available
-            bounding_box: detection.bounding_box || { x: 0, y: 0, width: 100, height: 100 },
-            comments: [], // Add comments if available
-            metadata: detection.metadata || {},
-            detection_frame_data: detection.detection_frame_data, // Include base64 frame data if available (legacy)
-            frame_url: detection.frame_url, // Include frame URL for file storage (legacy)
-            has_binary_jpeg: !!detection.detection_frame_jpeg, // Indicate if binary JPEG is available
-            frame_metadata: detection.frame_metadata, // Include JPEG metadata
-            jpeg_endpoint: detection.detection_frame_jpeg ? `/detections/${detection.detection_id}/jpeg` : null // Direct JPEG endpoint
-        }));
+        const formattedDetections = data.map(detection => {
+            // Format base64 frame data properly for frontend display
+            let formattedFrameData = null;
+            if (detection.detection_frame_data) {
+                // Check if it's already a data URL
+                if (detection.detection_frame_data.startsWith('data:')) {
+                    formattedFrameData = detection.detection_frame_data;
+                } else {
+                    // Convert raw base64 to proper data URL format
+                    formattedFrameData = `data:image/jpeg;base64,${detection.detection_frame_data}`;
+                }
+            }
+
+            return {
+                id: detection.detection_id,
+                detection_id: detection.detection_id,
+                weapon_type: detection.object_type || 'Unknown',
+                confidence: detection.confidence || 0,
+                threat_level: detection.threat_level || 1,
+                location: 'Unknown', // Add location field if available
+                timestamp: detection.timestamp || new Date().toISOString(),
+                device: 'ARCIS Device', // Add device name if available
+                device_id: '1', // Add device ID if available
+                bounding_box: detection.bounding_box || { x: 0, y: 0, width: 100, height: 100 },
+                comments: [], // Add comments if available
+                metadata: detection.metadata || {},
+                detection_frame_data: formattedFrameData, // Properly formatted base64 data URL
+                frame_url: detection.frame_url, // Include frame URL for file storage (legacy)
+                has_binary_jpeg: !!detection.detection_frame_jpeg, // Indicate if binary JPEG is available
+                frame_metadata: detection.frame_metadata, // Include JPEG metadata
+                jpeg_endpoint: detection.detection_frame_jpeg ? `/detections/${detection.detection_id}/jpeg` : null // Direct JPEG endpoint
+            };
+        });
 
         res.json({
             success: true,
