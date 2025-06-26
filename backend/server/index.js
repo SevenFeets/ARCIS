@@ -10,8 +10,13 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors()); // enable cors
-app.use(helmet()); // secure headers
+app.use(cors({
+    origin: ['https://arcis-prod.vercel.app', 'http://localhost:5173', 'http://localhost:3000'],
+    credentials: true
+})); // enable cors
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+})); // secure headers with cross-origin policy
 app.use(express.json()); // parse json bodies in the request
 
 // Import routes
