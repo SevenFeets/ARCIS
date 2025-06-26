@@ -1977,6 +1977,9 @@ router.post('/upload-jpeg', validateApiKey, uploadSingle, async (req, res) => {
         const jpegBuffer = fs.readFileSync(req.file.path);
 
         console.log(`📸 JPEG file read: ${jpegBuffer.length} bytes`);
+        console.log('📸 JPEG buffer type:', typeof jpegBuffer);
+        console.log('📸 Is Buffer:', Buffer.isBuffer(jpegBuffer));
+        console.log('📸 First 10 bytes:', jpegBuffer.slice(0, 10).toString('hex'));
 
         // Create frame metadata
         const frameMetadata = {
@@ -1988,19 +1991,23 @@ router.post('/upload-jpeg', validateApiKey, uploadSingle, async (req, res) => {
         };
 
         // Create detection record with binary JPEG data
+        // Convert buffer to base64 to avoid Supabase JSON serialization issues
+        const base64JpegData = jpegBuffer.toString('base64');
+        console.log('📸 Converted to base64, length:', base64JpegData.length);
+
         const detectionData = {
             object_category: 'weapon',
             object_type: object_type,
             confidence: parseFloat(confidence),
             bounding_box: typeof bounding_box === 'string' ? JSON.parse(bounding_box) : bounding_box,
             threat_level: threat_level || calculateThreatLevel(object_type, confidence),
-            detection_frame_jpeg: jpegBuffer, // Store binary JPEG data directly
+            detection_frame_jpeg: base64JpegData, // Store as base64 string
             frame_metadata: frameMetadata,
             system_metrics: system_metrics ? (typeof system_metrics === 'string' ? JSON.parse(system_metrics) : system_metrics) : null,
             timestamp: timestamp || new Date().toISOString(),
             metadata: {
                 device_id: device_id || req.deviceId,
-                storage_method: 'binary_jpeg_database'
+                storage_method: 'base64_jpeg_database'
             }
         };
 
