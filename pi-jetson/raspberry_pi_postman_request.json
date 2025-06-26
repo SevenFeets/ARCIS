@@ -1,0 +1,102 @@
+{
+    "info": {
+        "name": "ARCIS Raspberry Pi 4 Binary JPEG Upload",
+        "description": "Updated request for Raspberry Pi 4 using binary JPEG upload method with proper device identification"
+    },
+    "request": {
+        "method": "POST",
+        "header": [
+            {
+                "key": "X-API-Key",
+                "value": "test-device-key-2024"
+            }
+        ],
+        "body": {
+            "mode": "formdata",
+            "formdata": [
+                {
+                    "key": "detection_frame",
+                    "type": "file",
+                    "src": "weapon_detection.jpg",
+                    "description": "JPEG image file for binary storage"
+                },
+                {
+                    "key": "object_type",
+                    "value": "Pistol",
+                    "type": "text",
+                    "description": "Pi4 weapon types: Pistol, Knife"
+                },
+                {
+                    "key": "confidence",
+                    "value": "0.89",
+                    "type": "text",
+                    "description": "Detection confidence (0.0-1.0)"
+                },
+                {
+                    "key": "threat_level",
+                    "value": "6",
+                    "type": "text",
+                    "description": "Pi4 threat levels: 5-8"
+                },
+                {
+                    "key": "device_id",
+                    "value": "pi4_c",
+                    "type": "text",
+                    "description": "Pi4 device ID"
+                },
+                {
+                    "key": "device_name",
+                    "value": "pi4",
+                    "type": "text",
+                    "description": "Pi4 device name"
+                },
+                {
+                    "key": "device_type",
+                    "value": "raspberry_pi",
+                    "type": "text",
+                    "description": "Device type"
+                },
+                {
+                    "key": "bounding_box",
+                    "value": "{\"x\": 120, \"y\": 180, \"width\": 100, \"height\": 150}",
+                    "type": "text",
+                    "description": "Detection bounding box"
+                },
+                {
+                    "key": "system_metrics",
+                    "value": "{\"device_type\": \"raspberry_pi\", \"device_id\": \"pi4_c\", \"device_name\": \"pi4\", \"cpu_usage\": 42.8, \"memory_usage\": 35.6, \"temperature\": 58.3, \"voltage\": 5.1, \"network_strength\": 85}",
+                    "type": "text",
+                    "description": "Pi4 system metrics"
+                },
+                {
+                    "key": "metadata",
+                    "value": "{\"device_id\": \"pi4_c\", \"device_name\": \"pi4\", \"device_type\": \"raspberry_pi\", \"device_model\": \"Raspberry Pi 4 Model B\", \"location\": \"Security Checkpoint Charlie\", \"upload_method\": \"binary_jpeg_fixed\", \"image_format\": \"full_resolution_jpeg\"}",
+                    "type": "text",
+                    "description": "Enhanced device metadata"
+                },
+                {
+                    "key": "timestamp",
+                    "value": "2024-12-08T10:30:45Z",
+                    "type": "text",
+                    "description": "Detection timestamp"
+                }
+            ]
+        },
+        "url": {
+            "raw": "https://arcis-production.up.railway.app/api/detections/upload-jpeg",
+            "protocol": "https",
+            "host": [
+                "arcis-production",
+                "up",
+                "railway",
+                "app"
+            ],
+            "path": [
+                "api",
+                "detections",
+                "upload-jpeg"
+            ]
+        }
+    },
+    "response": []
+}

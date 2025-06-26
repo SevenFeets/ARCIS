@@ -1,0 +1,255 @@
+{
+    "info": {
+        "_postman_id": "arcis-device-testing-003",
+        "name": "ARCIS Device Testing Collection (Binary JPEG)",
+        "description": "Updated collection: Both devices use binary JPEG upload method with proper device identification",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Jetson Nano Detection (Binary JPEG)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "X-API-Key",
+                        "value": "test-device-key-2024",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "detection_frame",
+                            "type": "file",
+                            "src": [],
+                            "description": "Upload your weapon_detection.jpg file here"
+                        },
+                        {
+                            "key": "object_type",
+                            "value": "rifle",
+                            "type": "text",
+                            "description": "Jetson weapon types: rifle, weapon"
+                        },
+                        {
+                            "key": "confidence",
+                            "value": "0.92",
+                            "type": "text",
+                            "description": "Detection confidence (0.0-1.0)"
+                        },
+                        {
+                            "key": "threat_level",
+                            "value": "8",
+                            "type": "text",
+                            "description": "Jetson threat levels: 7-9"
+                        },
+                        {
+                            "key": "device_id",
+                            "value": "jt_bo1",
+                            "type": "text",
+                            "description": "Jetson device ID"
+                        },
+                        {
+                            "key": "device_name",
+                            "value": "jetson",
+                            "type": "text",
+                            "description": "Jetson device name"
+                        },
+                        {
+                            "key": "device_type",
+                            "value": "jetson_nano",
+                            "type": "text",
+                            "description": "Device type"
+                        },
+                        {
+                            "key": "bounding_box",
+                            "value": "{\"x\": 150, \"y\": 200, \"width\": 120, \"height\": 180}",
+                            "type": "text",
+                            "description": "Detection bounding box"
+                        },
+                        {
+                            "key": "system_metrics",
+                            "value": "{\"device_type\": \"jetson_nano\", \"device_id\": \"jt_bo1\", \"device_name\": \"jetson\", \"cpu_usage\": 65.2, \"gpu_usage\": 78.5, \"memory_usage\": 58.7, \"temperature\": 72.1, \"gpu_memory\": 3800}",
+                            "type": "text",
+                            "description": "Jetson system metrics"
+                        },
+                        {
+                            "key": "metadata",
+                            "value": "{\"device_id\": \"jt_bo1\", \"device_name\": \"jetson\", \"device_type\": \"jetson_nano\", \"device_model\": \"NVIDIA Jetson Nano\", \"location\": \"Security Checkpoint Alpha\", \"upload_method\": \"binary_jpeg_fixed\", \"image_format\": \"full_resolution_jpeg\"}",
+                            "type": "text",
+                            "description": "Enhanced device metadata"
+                        },
+                        {
+                            "key": "timestamp",
+                            "value": "{{$isoTimestamp}}",
+                            "type": "text",
+                            "description": "Auto-generated timestamp"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "{{BASE_URL}}/api/detections/upload-jpeg",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "detections",
+                        "upload-jpeg"
+                    ]
+                },
+                "description": "Jetson Nano uploads using binary JPEG method with multipart form data"
+            }
+        },
+        {
+            "name": "Raspberry Pi 4 Detection (Binary JPEG)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "X-API-Key",
+                        "value": "test-device-key-2024",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "formdata",
+                    "formdata": [
+                        {
+                            "key": "detection_frame",
+                            "type": "file",
+                            "src": [],
+                            "description": "Upload your weapon_detection.jpg file here"
+                        },
+                        {
+                            "key": "object_type",
+                            "value": "Pistol",
+                            "type": "text",
+                            "description": "Pi4 weapon types: Pistol, Knife"
+                        },
+                        {
+                            "key": "confidence",
+                            "value": "0.89",
+                            "type": "text",
+                            "description": "Detection confidence (0.0-1.0)"
+                        },
+                        {
+                            "key": "threat_level",
+                            "value": "6",
+                            "type": "text",
+                            "description": "Pi4 threat levels: 5-8"
+                        },
+                        {
+                            "key": "device_id",
+                            "value": "pi4_c",
+                            "type": "text",
+                            "description": "Pi4 device ID"
+                        },
+                        {
+                            "key": "device_name",
+                            "value": "pi4",
+                            "type": "text",
+                            "description": "Pi4 device name"
+                        },
+                        {
+                            "key": "device_type",
+                            "value": "raspberry_pi",
+                            "type": "text",
+                            "description": "Device type"
+                        },
+                        {
+                            "key": "bounding_box",
+                            "value": "{\"x\": 120, \"y\": 180, \"width\": 100, \"height\": 150}",
+                            "type": "text",
+                            "description": "Detection bounding box"
+                        },
+                        {
+                            "key": "system_metrics",
+                            "value": "{\"device_type\": \"raspberry_pi\", \"device_id\": \"pi4_c\", \"device_name\": \"pi4\", \"cpu_usage\": 42.8, \"memory_usage\": 35.6, \"temperature\": 58.3, \"voltage\": 5.1, \"network_strength\": 85}",
+                            "type": "text",
+                            "description": "Pi4 system metrics"
+                        },
+                        {
+                            "key": "metadata",
+                            "value": "{\"device_id\": \"pi4_c\", \"device_name\": \"pi4\", \"device_type\": \"raspberry_pi\", \"device_model\": \"Raspberry Pi 4 Model B\", \"location\": \"Security Checkpoint Charlie\", \"upload_method\": \"binary_jpeg_fixed\", \"image_format\": \"full_resolution_jpeg\"}",
+                            "type": "text",
+                            "description": "Enhanced device metadata"
+                        },
+                        {
+                            "key": "timestamp",
+                            "value": "{{$isoTimestamp}}",
+                            "type": "text",
+                            "description": "Auto-generated timestamp"
+                        }
+                    ]
+                },
+                "url": {
+                    "raw": "{{BASE_URL}}/api/detections/upload-jpeg",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "detections",
+                        "upload-jpeg"
+                    ]
+                },
+                "description": "Raspberry Pi 4 uploads using binary JPEG method with multipart form data"
+            }
+        },
+        {
+            "name": "Get Active Threats",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{BASE_URL}}/api/detections/threats",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "detections",
+                        "threats"
+                    ]
+                },
+                "description": "Get all active weapon threats from the system"
+            }
+        },
+        {
+            "name": "Test Image Access (Detection ID)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{BASE_URL}}/api/detections/{{DETECTION_ID}}/jpeg",
+                    "host": [
+                        "{{BASE_URL}}"
+                    ],
+                    "path": [
+                        "api",
+                        "detections",
+                        "{{DETECTION_ID}}",
+                        "jpeg"
+                    ]
+                },
+                "description": "Test binary JPEG access for a specific detection ID"
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "BASE_URL",
+            "value": "https://arcis-production.up.railway.app",
+            "type": "string",
+            "description": "Production ARCIS backend API URL"
+        },
+        {
+            "key": "DETECTION_ID",
+            "value": "93",
+            "type": "string",
+            "description": "Detection ID for testing image access (update with actual ID)"
+        }
+    ]
+}

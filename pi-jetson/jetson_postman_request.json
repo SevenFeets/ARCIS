@@ -1,0 +1,102 @@
+{
+    "info": {
+        "name": "ARCIS Jetson Nano Binary JPEG Upload",
+        "description": "Updated request for Jetson Nano using binary JPEG upload method with proper device identification"
+    },
+    "request": {
+        "method": "POST",
+        "header": [
+            {
+                "key": "X-API-Key",
+                "value": "test-device-key-2024"
+            }
+        ],
+        "body": {
+            "mode": "formdata",
+            "formdata": [
+                {
+                    "key": "detection_frame",
+                    "type": "file",
+                    "src": "weapon_detection.jpg",
+                    "description": "JPEG image file for binary storage"
+                },
+                {
+                    "key": "object_type",
+                    "value": "rifle",
+                    "type": "text",
+                    "description": "Jetson weapon types: rifle, weapon"
+                },
+                {
+                    "key": "confidence",
+                    "value": "0.92",
+                    "type": "text",
+                    "description": "Detection confidence (0.0-1.0)"
+                },
+                {
+                    "key": "threat_level",
+                    "value": "8",
+                    "type": "text",
+                    "description": "Jetson threat levels: 7-9"
+                },
+                {
+                    "key": "device_id",
+                    "value": "jt_bo1",
+                    "type": "text",
+                    "description": "Jetson device ID"
+                },
+                {
+                    "key": "device_name",
+                    "value": "jetson",
+                    "type": "text",
+                    "description": "Jetson device name"
+                },
+                {
+                    "key": "device_type",
+                    "value": "jetson_nano",
+                    "type": "text",
+                    "description": "Device type"
+                },
+                {
+                    "key": "bounding_box",
+                    "value": "{\"x\": 150, \"y\": 200, \"width\": 120, \"height\": 180}",
+                    "type": "text",
+                    "description": "Detection bounding box"
+                },
+                {
+                    "key": "system_metrics",
+                    "value": "{\"device_type\": \"jetson_nano\", \"device_id\": \"jt_bo1\", \"device_name\": \"jetson\", \"cpu_usage\": 65.2, \"gpu_usage\": 78.5, \"memory_usage\": 58.7, \"temperature\": 72.1, \"gpu_memory\": 3800}",
+                    "type": "text",
+                    "description": "Jetson system metrics"
+                },
+                {
+                    "key": "metadata",
+                    "value": "{\"device_id\": \"jt_bo1\", \"device_name\": \"jetson\", \"device_type\": \"jetson_nano\", \"device_model\": \"NVIDIA Jetson Nano\", \"location\": \"Security Checkpoint Alpha\", \"upload_method\": \"binary_jpeg_fixed\", \"image_format\": \"full_resolution_jpeg\"}",
+                    "type": "text",
+                    "description": "Enhanced device metadata"
+                },
+                {
+                    "key": "timestamp",
+                    "value": "2024-12-08T10:30:45Z",
+                    "type": "text",
+                    "description": "Detection timestamp"
+                }
+            ]
+        },
+        "url": {
+            "raw": "https://arcis-production.up.railway.app/api/detections/upload-jpeg",
+            "protocol": "https",
+            "host": [
+                "arcis-production",
+                "up",
+                "railway",
+                "app"
+            ],
+            "path": [
+                "api",
+                "detections",
+                "upload-jpeg"
+            ]
+        }
+    },
+    "response": []
+}
