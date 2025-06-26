@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ARCIS Image Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ccc;
+        }
+
+        img {
+            max-width: 300px;
+            border: 2px solid #ddd;
+            margin: 10px 0;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .info {
+            color: blue;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🛡️ ARCIS Image Loading Test</h1>
+
+    <div class="test-section">
+        <h3>📊 Test Summary</h3>
+        <div id="summary">Running tests...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test 1: Binary JPEG Endpoint (Detection ID: 5)</h3>
+        <div>URL: <code id="url1">https://arcis-production.up.railway.app/api/detections/5/jpeg</code></div>
+        <div id="result1">Loading...</div>
+        <img id="img1" style="display:none;" onerror="handleError(1)" onload="handleSuccess(1)">
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test 2: Legacy Frame API (Detection ID: 5)</h3>
+        <div>URL: <code id="url2">https://arcis-production.up.railway.app/api/detections/5/frame</code></div>
+        <div id="result2">Loading...</div>
+        <img id="img2" style="display:none;" onerror="handleError(2)" onload="handleSuccess(2)">
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Test 3: JPEG Data Format Test</h3>
+        <div>URL: <code id="url3">https://arcis-production.up.railway.app/api/detections/test-jpeg/5</code></div>
+        <div id="result3">Loading...</div>
+        <pre id="data3"></pre>
+    </div>
+
+    <script>
+        let testResults = { success: 0, failed: 0 };
+
+        function handleSuccess(testNum) {
+            document.getElementById(`result${testNum}`).innerHTML = '<span class="success">✅ Image loaded successfully!</span>';
+            document.getElementById(`img${testNum}`).style.display = 'block';
+            testResults.success++;
+            updateSummary();
+        }
+
+        function handleError(testNum) {
+            document.getElementById(`result${testNum}`).innerHTML = '<span class="error">❌ Image failed to load</span>';
+            testResults.failed++;
+            updateSummary();
+        }
+
+        function updateSummary() {
+            document.getElementById('summary').innerHTML = `
+                <span class="success">✅ ${testResults.success} passed</span> | 
+                <span class="error">❌ ${testResults.failed} failed</span>
+            `;
+        }
+
+        // Test 1: Binary JPEG endpoint
+        setTimeout(() => {
+            const img1 = document.getElementById('img1');
+            img1.src = 'https://arcis-production.up.railway.app/api/detections/5/jpeg';
+        }, 500);
+
+        // Test 2: Legacy frame API
+        setTimeout(() => {
+            fetch('https://arcis-production.up.railway.app/api/detections/5/frame')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Frame API response:', data);
+                    if (data.success && data.frame_data) {
+                        document.getElementById('result2').innerHTML = '<span class="info">📄 Got frame data, testing image...</span>';
+                        const img2 = document.getElementById('img2');
+                        img2.src = data.frame_data;
+                    } else {
+                        document.getElementById('result2').innerHTML = '<span class="error">❌ No frame data in response</span>';
+                        testResults.failed++;
+                        updateSummary();
+                    }
+                })
+                .catch(error => {
+                    console.error('Frame API error:', error);
+                    document.getElementById('result2').innerHTML = `<span class="error">❌ API Error: ${error.message}</span>`;
+                    testResults.failed++;
+                    updateSummary();
+                });
+        }, 1000);
+
+        // Test 3: JPEG format test
+        setTimeout(() => {
+            fetch('https://arcis-production.up.railway.app/api/detections/test-jpeg/5')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('JPEG format test:', data);
+                    document.getElementById('result3').innerHTML = '<span class="info">📋 JPEG format data retrieved</span>';
+                    document.getElementById('data3').textContent = JSON.stringify(data, null, 2);
+                })
+                .catch(error => {
+                    console.error('JPEG format test error:', error);
+                    document.getElementById('result3').innerHTML = `<span class="error">❌ Test Error: ${error.message}</span>`;
+                    document.getElementById('data3').textContent = error.message;
+                });
+        }, 1500);
+    </script>
+</body>
+
+</html>

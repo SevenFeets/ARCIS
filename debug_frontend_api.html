@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ARCIS Frontend API Debug</title>
+</head>
+
+<body>
+    <h1>🔍 ARCIS Frontend API Debug</h1>
+
+    <div id="results"></div>
+
+    <script>
+        const API_URL = 'https://arcis-production.up.railway.app/api';
+        const resultsDiv = document.getElementById('results');
+
+        function log(message) {
+            resultsDiv.innerHTML += '<p>' + message + '</p>';
+            console.log(message);
+        }
+
+        async function testAPI() {
+            log('🔍 Testing Frontend API Connection...');
+
+            try {
+                // Test threats endpoint
+                log('📡 Fetching threats...');
+                const response = await fetch(`${API_URL}/detections/threats`);
+                const data = await response.json();
+
+                log(`✅ Threats loaded: ${data.threat_count} threats found`);
+
+                if (data.active_weapon_threats && data.active_weapon_threats.length > 0) {
+                    const threat = data.active_weapon_threats[0];
+                    log(`📋 First threat: ID ${threat.id}`);
+                    log(`🖼️ Has Binary JPEG: ${threat.has_binary_jpeg}`);
+                    log(`🔗 JPEG Endpoint: ${threat.jpeg_endpoint}`);
+
+                    if (threat.has_binary_jpeg && threat.jpeg_endpoint) {
+                        // Test image loading
+                        log('🖼️ Testing image loading...');
+                        const imageUrl = `${API_URL.replace('/api', '')}${threat.jpeg_endpoint}`;
+                        log(`📍 Image URL: ${imageUrl}`);
+
+                        // Create image element
+                        const img = document.createElement('img');
+                        img.onload = function () {
+                            log('✅ Image loaded successfully!');
+                            log(`📏 Image size: ${this.naturalWidth}x${this.naturalHeight}`);
+                        };
+                        img.onerror = function () {
+                            log('❌ Image failed to load');
+                        };
+                        img.src = imageUrl;
+                        img.style.maxWidth = '300px';
+                        resultsDiv.appendChild(img);
+                    }
+                }
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`);
+            }
+        }
+
+        // Run test
+        testAPI();
+    </script>
+</body>
+
+</html>

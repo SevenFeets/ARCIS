@@ -31,6 +31,36 @@ const validateApiKey = (req, res, next) => {
     next();
 };
 
+// GET /api/detections/test-jpeg/:id - Test JPEG data format
+router.get('/test-jpeg/:id', async (req, res) => {
+    try {
+        const detectionId = parseInt(req.params.id);
+        const { supabase } = require('../config/supabase');
+
+        const { data, error } = await supabase
+            .from('detections')
+            .select('detection_id, detection_frame_jpeg')
+            .eq('detection_id', detectionId)
+            .single();
+
+        if (error || !data) {
+            return res.json({ error: 'Detection not found' });
+        }
+
+        res.json({
+            detection_id: data.detection_id,
+            jpeg_data_type: typeof data.detection_frame_jpeg,
+            jpeg_data_preview: data.detection_frame_jpeg ?
+                (typeof data.detection_frame_jpeg === 'string' ?
+                    data.detection_frame_jpeg.substring(0, 100) :
+                    JSON.stringify(data.detection_frame_jpeg).substring(0, 100)) : null,
+            has_jpeg: !!data.detection_frame_jpeg
+        });
+    } catch (error) {
+        res.json({ error: error.message });
+    }
+});
+
 // GET /api/detections/test - Test database connection
 router.get('/test', async (req, res) => {
     try {
@@ -219,7 +249,7 @@ router.get('/threats', async (req, res) => {
             frame_url: threat.frame_url, // Include frame URL for file storage (legacy)
             has_binary_jpeg: !!threat.detection_frame_jpeg, // Indicate if binary JPEG is available
             frame_metadata: threat.frame_metadata, // Include JPEG metadata
-            jpeg_endpoint: threat.detection_frame_jpeg ? `/detections/${threat.detection_id}/jpeg` : null // Direct JPEG endpoint
+            jpeg_endpoint: threat.detection_frame_jpeg ? `/api/detections/${threat.detection_id}/jpeg` : null // Direct JPEG endpoint
         }));
 
         res.json({
@@ -633,20 +663,62 @@ router.get('/:id/frame', async (req, res) => {
             console.log('📸 Converting binary JPEG to base64 for legacy API');
 
             let jpegBuffer;
+
+            console.log('🔍 JPEG data debug:', {
+                type: typeof data.detection_frame_jpeg,
+                isBuffer: Buffer.isBuffer(data.detection_frame_jpeg),
+                hasTypeProperty: data.detection_frame_jpeg && data.detection_frame_jpeg.type
+            });
+
             if (Buffer.isBuffer(data.detection_frame_jpeg)) {
+                console.log('✅ Data is already a Buffer');
                 jpegBuffer = data.detection_frame_jpeg;
             } else if (data.detection_frame_jpeg && data.detection_frame_jpeg.type === 'Buffer' && Array.isArray(data.detection_frame_jpeg.data)) {
-                // Supabase returns Buffer as {type: 'Buffer', data: [array]}
+                console.log('🔄 Converting from Supabase {type: Buffer, data: []} format');
                 jpegBuffer = Buffer.from(data.detection_frame_jpeg.data);
             } else if (typeof data.detection_frame_jpeg === 'string') {
-                jpegBuffer = Buffer.from(data.detection_frame_jpeg, 'base64');
+                console.log('📝 Trying to decode string data');
+                try {
+                    // Check if it's hex-encoded JSON first
+                    if (data.detection_frame_jpeg.startsWith('x')) {
+                        console.log('🔍 Detected hex-encoded data, trying to decode...');
+                        const hexString = data.detection_frame_jpeg.substring(1); // Remove 'x' prefix
+                        const jsonString = Buffer.from(hexString, 'hex').toString('utf8');
+                        console.log('📋 Decoded JSON:', jsonString.substring(0, 100) + '...');
+
+                        const parsedData = JSON.parse(jsonString);
+                        if (parsedData.type === 'Buffer' && Array.isArray(parsedData.data)) {
+                            console.log('✅ Successfully parsed hex-encoded Buffer JSON');
+                            jpegBuffer = Buffer.from(parsedData.data);
+                        }
+                    } else {
+                        // Try normal base64 decode
+                        jpegBuffer = Buffer.from(data.detection_frame_jpeg, 'base64');
+                    }
+                } catch (parseError) {
+                    console.error('❌ Failed to parse string data:', parseError.message);
+                }
             }
 
-            if (jpegBuffer) {
-                // Convert to base64 data URL
-                const base64Data = jpegBuffer.toString('base64');
-                frameData = `data:image/jpeg;base64,${base64Data}`;
-                console.log(`✅ Converted JPEG buffer (${jpegBuffer.length} bytes) to base64 data URL`);
+            if (jpegBuffer && jpegBuffer.length > 0) {
+                // Verify it's actually a JPEG
+                const isValidJPEG = jpegBuffer.slice(0, 2).toString('hex') === 'ffd8';
+                console.log('🔍 Buffer validation:', {
+                    length: jpegBuffer.length,
+                    firstBytes: jpegBuffer.slice(0, 4).toString('hex'),
+                    isValidJPEG
+                });
+
+                if (isValidJPEG) {
+                    // Convert to base64 data URL
+                    const base64Data = jpegBuffer.toString('base64');
+                    frameData = `data:image/jpeg;base64,${base64Data}`;
+                    console.log(`✅ Created valid JPEG data URL (${jpegBuffer.length} bytes)`);
+                } else {
+                    console.log('❌ Buffer is not a valid JPEG, skipping');
+                }
+            } else {
+                console.log('❌ No valid JPEG buffer created');
             }
         }
 
@@ -1013,7 +1085,7 @@ router.get('/all', async (req, res) => {
             frame_url: detection.frame_url, // Include frame URL for file storage (legacy)
             has_binary_jpeg: !!detection.detection_frame_jpeg, // Indicate if binary JPEG is available
             frame_metadata: detection.frame_metadata, // Include JPEG metadata
-            jpeg_endpoint: detection.detection_frame_jpeg ? `/detections/${detection.detection_id}/jpeg` : null // Direct JPEG endpoint
+            jpeg_endpoint: detection.detection_frame_jpeg ? `/api/detections/${detection.detection_id}/jpeg` : null // Direct JPEG endpoint
         }));
 
         res.json({
@@ -1388,7 +1460,7 @@ router.post('/raspberry-detection', validateApiKey, uploadSingle, async (req, re
                     threat_level: threatLevel,
                     confidence: Math.round(standardizedDetection.confidence * 100),
                     has_binary_jpeg: true, // Flag for frontend
-                    jpeg_endpoint: `/detections/${detectionResult.detection_id}/jpeg`, // Direct JPEG endpoint
+                    jpeg_endpoint: `/api/detections/${detectionResult.detection_id}/jpeg`, // Direct JPEG endpoint
                     storage_method: 'binary_jpeg_database'
                 });
             }
