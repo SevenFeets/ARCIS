@@ -1080,8 +1080,8 @@ router.get('/all', async (req, res) => {
             threat_level: detection.threat_level || 1,
             location: 'Unknown', // Add location field if available
             timestamp: detection.timestamp || new Date().toISOString(),
-            device: 'ARCIS Device', // Add device name if available
-            device_id: '1', // Add device ID if available
+            device: detection.metadata?.device_name || 'ARCIS Device',
+            device_id: detection.metadata?.device_id || '1',
             bounding_box: detection.bounding_box || { x: 0, y: 0, width: 100, height: 100 },
             comments: [], // Add comments if available
             metadata: detection.metadata || {},
@@ -1151,8 +1151,8 @@ router.get('/:id', async (req, res) => {
             threat_level: data.threat_level || 1,
             location: 'Unknown', // Add location if available in metadata
             timestamp: data.timestamp || new Date().toISOString(),
-            device: 'ARCIS Device', // Add device name if available
-            device_id: '1', // Add device ID if available
+            device: data.metadata?.device_name || 'ARCIS Device',
+            device_id: data.metadata?.device_id || '1',
             bounding_box: data.bounding_box || { x: 0, y: 0, width: 100, height: 100 },
             comments: [], // Add comments if available in metadata
             metadata: data.metadata || {},
