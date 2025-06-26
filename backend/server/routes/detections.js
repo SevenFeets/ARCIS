@@ -2143,11 +2143,14 @@ router.get('/:id/jpeg', async (req, res) => {
         } else if (typeof data.detection_frame_jpeg === 'string') {
             console.log('📝 Processing string JPEG data');
 
-            if (data.detection_frame_jpeg.startsWith('x')) {
+            if (data.detection_frame_jpeg.startsWith('x') || data.detection_frame_jpeg.startsWith('\\x')) {
                 // Hex-encoded Buffer JSON - this is our main issue!
                 console.log('🔍 Detected hex-encoded Buffer JSON, decoding...');
                 try {
-                    const hexString = data.detection_frame_jpeg.substring(1); // Remove 'x' prefix
+                    // Handle both 'x' and '\x' prefixes
+                    const hexString = data.detection_frame_jpeg.startsWith('\\x')
+                        ? data.detection_frame_jpeg.substring(2) // Remove '\x' prefix
+                        : data.detection_frame_jpeg.substring(1); // Remove 'x' prefix
                     const jsonString = Buffer.from(hexString, 'hex').toString('utf8');
                     console.log('📋 Decoded JSON preview:', jsonString.substring(0, 100));
 
