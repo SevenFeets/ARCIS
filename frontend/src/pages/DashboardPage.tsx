@@ -313,6 +313,9 @@ const DashboardPage: React.FC = () => {
                                     {detection.weapon_type} - Confidence: {detection.confidence}%
                                 </div>
                                 <div style={{ marginBottom: '5px', color: textColor }}>
+                                    🔢 <strong>Detection ID:</strong> {detection.detection_id || detection.id}
+                                </div>
+                                <div style={{ marginBottom: '5px', color: textColor }}>
                                     📍 <strong>Location:</strong> {detection.location || 'Unknown'}
                                 </div>
                                 <div style={{ marginBottom: '5px', color: textColor }}>
@@ -539,8 +542,29 @@ const DashboardPage: React.FC = () => {
                                     <div style={{ marginBottom: '5px', color: textColor }}>
                                         📱 <strong>Device:</strong> {threat.device} ({threat.device_id})
                                     </div>
-                                    <div style={{ color: textColor }}>
+                                    <div style={{ marginBottom: '5px', color: textColor }}>
                                         🎯 <strong>Confidence:</strong> {threat.confidence}%
+                                    </div>
+                                    <div style={{ marginBottom: '5px', color: textColor }}>
+                                        🔢 <strong>Detection ID:</strong> {threatId}
+                                    </div>
+                                    <div style={{ color: textColor }}>
+                                        🖼️ <strong>Check Image:</strong>
+                                        <button
+                                            onClick={() => handleExpandThreat({ ...threat, id: threatId })}
+                                            style={{
+                                                marginLeft: '8px',
+                                                padding: '4px 8px',
+                                                backgroundColor: '#17a2b8',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '3px',
+                                                cursor: 'pointer',
+                                                fontSize: '12px'
+                                            }}
+                                        >
+                                            View Frame
+                                        </button>
                                     </div>
 
                                     {/* Action Buttons */}
