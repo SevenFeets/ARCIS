@@ -50,3 +50,19 @@ weapon_detection_base64.txt
 pi-jetson/
 chrome source files/
 test_debug/
+
+fix_jetson_upload.cjs
+master_device_test.cjs
+test_both_devices.cjs
+test_endpoints.cjs
+test_jetson_upload.cjs
+test_pi4_upload.cjs
+upload_jetson_weapon.cjs
+upload_pi4_weapon.cjs
+verify_uploads.cjs
+
+working_jetson_test.cjs
+working_pi4_simple.cjs
+working_pi4_test.cjs
+
+documentations/
