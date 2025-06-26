@@ -1750,8 +1750,8 @@ router.post('/manual', async (req, res) => {
 // Helper functions
 function calculateThreatLevel(weaponType, confidence) {
     const baseThreatLevels = {
-        'Knife': 6,        // Medium-high threat
-        'Pistol': 8,       // High threat
+        'knife': 6,        // Medium-high threat
+        'pistol': 8,       // High threat
         'weapon': 7,       // High threat (generic weapon)
         'rifle': 10        // Maximum threat
     };
@@ -1764,21 +1764,23 @@ function calculateThreatLevel(weaponType, confidence) {
 function mapJetsonClassToWeaponType(objectClass, label) {
     const mappings = {
         'weapon': 'weapon',
-        'pistol': 'Pistol',
-        'gun': 'Pistol',
-        'firearm': 'Pistol',
+        'pistol': 'pistol',
+        'gun': 'pistol',
+        'firearm': 'pistol',
+        'handgun': 'pistol',
         'rifle': 'rifle',
-        'knife': 'Knife',
-        'blade': 'Knife',
-        'sword': 'Knife'
+        'assault': 'rifle',
+        'knife': 'knife',
+        'blade': 'knife',
+        'sword': 'knife'
     };
 
     // Handle numeric class IDs (common in YOLO models)
     const classIdMappings = {
         0: 'weapon',
-        1: 'Pistol',
+        1: 'pistol',
         2: 'rifle',
-        3: 'Knife'
+        3: 'knife'
     };
 
     // Check numeric class ID first
@@ -1798,13 +1800,13 @@ function mapCloudVisionToWeaponType(description) {
     const desc = description.toLowerCase();
 
     if (desc.includes('pistol') || desc.includes('handgun') || desc.includes('gun')) {
-        return 'Pistol';
+        return 'pistol';
     }
     if (desc.includes('rifle') || desc.includes('assault')) {
         return 'rifle';
     }
     if (desc.includes('knife') || desc.includes('blade') || desc.includes('sword')) {
-        return 'Knife';
+        return 'knife';
     }
     if (desc.includes('weapon') || desc.includes('firearm')) {
         return 'weapon';
@@ -1815,15 +1817,23 @@ function mapCloudVisionToWeaponType(description) {
 
 // Check if detected object is a weapon
 function isWeaponDetection(objectType) {
-    return objectType !== null && ['Knife', 'Pistol', 'weapon', 'rifle'].includes(objectType);
+    return objectType !== null && ['knife', 'pistol', 'weapon', 'rifle'].includes(objectType);
 }
 
 // Determine device type from metadata
 function getDeviceType(metadata) {
-    if (metadata.device_type === 'jetson_nano') return 'Jetson Nano';
-    if (metadata.device_type === 'raspberry_pi') return 'Raspberry Pi';
+    if (metadata.device_type === 'jetson_nano' || metadata.device_type === 'jetson nano') return 'Jetson Nano';
+    if (metadata.device_type === 'raspberry_pi' || metadata.device_type === 'pi4') return 'Raspberry Pi 4';
+
+    // Check specific device IDs
+    if (metadata.device_id === 'bo1') return 'Jetson Nano';
+    if (metadata.device_id === 'pi4_c') return 'Raspberry Pi 4 + Cloud';
+
+    // Legacy checks
     if (metadata.device_id && metadata.device_id.includes('jetson')) return 'Jetson Nano';
     if (metadata.device_id && metadata.device_id.includes('raspberry')) return 'Raspberry Pi';
+    if (metadata.device_id && metadata.device_id.includes('pi4')) return 'Raspberry Pi 4';
+
     return 'Unknown Device';
 }
 
