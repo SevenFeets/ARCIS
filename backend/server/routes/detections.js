@@ -677,26 +677,30 @@ router.get('/:id/frame', async (req, res) => {
                 console.log('🔄 Converting from Supabase {type: Buffer, data: []} format');
                 jpegBuffer = Buffer.from(data.detection_frame_jpeg.data);
             } else if (typeof data.detection_frame_jpeg === 'string') {
-                console.log('📝 Trying to decode string data');
+                console.log('📝 Processing string JPEG data');
                 try {
                     // Check if it's hex-encoded JSON first
                     if (data.detection_frame_jpeg.startsWith('x')) {
-                        console.log('🔍 Detected hex-encoded data, trying to decode...');
+                        console.log('🔍 Detected hex-encoded Buffer JSON, decoding...');
                         const hexString = data.detection_frame_jpeg.substring(1); // Remove 'x' prefix
                         const jsonString = Buffer.from(hexString, 'hex').toString('utf8');
-                        console.log('📋 Decoded JSON:', jsonString.substring(0, 100) + '...');
+                        console.log('📋 Decoded JSON preview:', jsonString.substring(0, 100));
 
                         const parsedData = JSON.parse(jsonString);
                         if (parsedData.type === 'Buffer' && Array.isArray(parsedData.data)) {
                             console.log('✅ Successfully parsed hex-encoded Buffer JSON');
                             jpegBuffer = Buffer.from(parsedData.data);
+                        } else {
+                            throw new Error('Invalid Buffer JSON structure');
                         }
                     } else {
                         // Try normal base64 decode
+                        console.log('📝 Converting from base64 string');
                         jpegBuffer = Buffer.from(data.detection_frame_jpeg, 'base64');
                     }
                 } catch (parseError) {
                     console.error('❌ Failed to parse string data:', parseError.message);
+                    jpegBuffer = null;
                 }
             }
 
@@ -2117,7 +2121,8 @@ router.get('/:id/jpeg', async (req, res) => {
             type: typeof data.detection_frame_jpeg,
             isBuffer: Buffer.isBuffer(data.detection_frame_jpeg),
             hasTypeProperty: data.detection_frame_jpeg && data.detection_frame_jpeg.type,
-            firstBytes: data.detection_frame_jpeg ? (Buffer.isBuffer(data.detection_frame_jpeg) ? data.detection_frame_jpeg.slice(0, 4).toString('hex') : 'not-buffer') : 'null'
+            firstBytes: data.detection_frame_jpeg ? (Buffer.isBuffer(data.detection_frame_jpeg) ? data.detection_frame_jpeg.slice(0, 4).toString('hex') : 'not-buffer') : 'null',
+            preview: typeof data.detection_frame_jpeg === 'string' ? data.detection_frame_jpeg.substring(0, 50) : 'not-string'
         });
 
         if (Buffer.isBuffer(data.detection_frame_jpeg)) {
@@ -2129,9 +2134,32 @@ router.get('/:id/jpeg', async (req, res) => {
             console.log('🔄 Converting from Supabase Buffer format');
             jpegBuffer = Buffer.from(data.detection_frame_jpeg.data);
         } else if (typeof data.detection_frame_jpeg === 'string') {
-            // String data (base64 or other)
-            console.log('📝 Converting from string (base64)');
-            jpegBuffer = Buffer.from(data.detection_frame_jpeg, 'base64');
+            console.log('📝 Processing string JPEG data');
+
+            if (data.detection_frame_jpeg.startsWith('x')) {
+                // Hex-encoded Buffer JSON - this is our main issue!
+                console.log('🔍 Detected hex-encoded Buffer JSON, decoding...');
+                try {
+                    const hexString = data.detection_frame_jpeg.substring(1); // Remove 'x' prefix
+                    const jsonString = Buffer.from(hexString, 'hex').toString('utf8');
+                    console.log('📋 Decoded JSON preview:', jsonString.substring(0, 100));
+
+                    const bufferData = JSON.parse(jsonString);
+                    if (bufferData.type === 'Buffer' && Array.isArray(bufferData.data)) {
+                        console.log('✅ Successfully parsed hex-encoded Buffer JSON');
+                        jpegBuffer = Buffer.from(bufferData.data);
+                    } else {
+                        throw new Error('Invalid Buffer JSON structure');
+                    }
+                } catch (parseError) {
+                    console.error('❌ Failed to parse hex-encoded data:', parseError.message);
+                    jpegBuffer = null;
+                }
+            } else {
+                // Regular base64 string
+                console.log('📝 Converting from base64 string');
+                jpegBuffer = Buffer.from(data.detection_frame_jpeg, 'base64');
+            }
         } else {
             console.error('❌ Unknown JPEG data format:', typeof data.detection_frame_jpeg);
             return res.status(500).json({
