@@ -1,8 +1,30 @@
 import axios from 'axios';
 
+// Determine the correct API base URL
+const getApiBaseUrl = () => {
+    let apiBaseUrl = import.meta.env.VITE_API_URL;
+
+    // If no environment variable is set, determine the correct URL based on the current domain
+    if (!apiBaseUrl) {
+        if (typeof window !== 'undefined') {
+            if (window.location.hostname === 'localhost') {
+                apiBaseUrl = 'http://localhost:5000/api';
+            } else {
+                // Production - use the Railway backend
+                apiBaseUrl = 'https://arcis-production.up.railway.app/api';
+            }
+        } else {
+            // Fallback for SSR or other contexts
+            apiBaseUrl = 'https://arcis-production.up.railway.app/api';
+        }
+    }
+
+    return apiBaseUrl;
+};
+
 // Create axios instance with base configuration
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'https://arics-eaglesight.up.railway.app/api',
+    baseURL: getApiBaseUrl(),
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json',

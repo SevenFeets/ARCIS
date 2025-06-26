@@ -103,7 +103,20 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
         // Priority 4: Try binary JPEG endpoint by ID (fallback)
         try {
             console.log('🔄 Trying binary JPEG endpoint for threat ID:', threat.id);
-            const jpegUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/detections/${threat.id}/jpeg`;
+            // Construct the correct API URL - handle both local and production environments
+            let apiBaseUrl = import.meta.env.VITE_API_URL;
+
+            // If no environment variable is set, determine the correct URL based on the current domain
+            if (!apiBaseUrl) {
+                if (window.location.hostname === 'localhost') {
+                    apiBaseUrl = 'http://localhost:5000/api';
+                } else {
+                    // Production - use the Railway backend
+                    apiBaseUrl = 'https://arcis-production.up.railway.app/api';
+                }
+            }
+
+            const jpegUrl = `${apiBaseUrl}/detections/${threat.id}/jpeg`;
             console.log('🔗 Trying JPEG URL:', jpegUrl);
 
             // Test if the endpoint returns an image
