@@ -2144,22 +2144,33 @@ router.get('/:id/jpeg', async (req, res) => {
             console.log('📝 Processing string JPEG data');
 
             if (data.detection_frame_jpeg.startsWith('x') || data.detection_frame_jpeg.startsWith('\\x')) {
-                // Hex-encoded Buffer JSON - this is our main issue!
-                console.log('🔍 Detected hex-encoded Buffer JSON, decoding...');
+                console.log('🔍 Detected hex-encoded data, attempting to decode...');
                 try {
                     // Handle both 'x' and '\x' prefixes
                     const hexString = data.detection_frame_jpeg.startsWith('\\x')
                         ? data.detection_frame_jpeg.substring(2) // Remove '\x' prefix
                         : data.detection_frame_jpeg.substring(1); // Remove 'x' prefix
-                    const jsonString = Buffer.from(hexString, 'hex').toString('utf8');
-                    console.log('📋 Decoded JSON preview:', jsonString.substring(0, 100));
 
-                    const bufferData = JSON.parse(jsonString);
-                    if (bufferData.type === 'Buffer' && Array.isArray(bufferData.data)) {
-                        console.log('✅ Successfully parsed hex-encoded Buffer JSON');
-                        jpegBuffer = Buffer.from(bufferData.data);
+                    const decodedString = Buffer.from(hexString, 'hex').toString('utf8');
+                    console.log('📋 Decoded string preview:', decodedString.substring(0, 100));
+
+                    // Check if it's a JSON Buffer or base64 string
+                    if (decodedString.startsWith('{') && decodedString.includes('"type":"Buffer"')) {
+                        // Hex-encoded Buffer JSON
+                        console.log('🔄 Processing as hex-encoded Buffer JSON');
+                        const bufferData = JSON.parse(decodedString);
+                        if (bufferData.type === 'Buffer' && Array.isArray(bufferData.data)) {
+                            console.log('✅ Successfully parsed hex-encoded Buffer JSON');
+                            jpegBuffer = Buffer.from(bufferData.data);
+                        } else {
+                            throw new Error('Invalid Buffer JSON structure');
+                        }
+                    } else if (decodedString.startsWith('/9j') || decodedString.startsWith('iVBOR')) {
+                        // Hex-encoded base64 string
+                        console.log('📝 Processing as hex-encoded base64 string');
+                        jpegBuffer = Buffer.from(decodedString, 'base64');
                     } else {
-                        throw new Error('Invalid Buffer JSON structure');
+                        throw new Error('Unknown decoded data format');
                     }
                 } catch (parseError) {
                     console.error('❌ Failed to parse hex-encoded data:', parseError.message);
