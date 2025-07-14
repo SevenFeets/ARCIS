@@ -53,11 +53,14 @@ const DashboardPage: React.FC = () => {
             setManualDetections(manualEntries.data.data);
             setThreats(currentThreats.data.active_weapon_threats);
 
+            // Fix timezone issue: use UTC timestamps consistently
             const now = new Date();
             const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-            const recentDetections = allDetections.data.data.filter(
-                d => new Date(d.timestamp) > oneHourAgo
-            );
+            const recentDetections = allDetections.data.data.filter(d => {
+                // Parse detection timestamp as UTC to handle GMT+3 offset properly
+                const detectionTime = new Date(d.timestamp);
+                return detectionTime > oneHourAgo;
+            });
 
             setStats({
                 total: allDetections.data.total,

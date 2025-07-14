@@ -1,7 +1,7 @@
 // Load environment variables first
 require('dotenv').config();
 
-const { supabase } = require('./config/supabase');
+const { supabase } = require('../config/supabase');
 const fs = require('fs');
 const path = require('path');
 

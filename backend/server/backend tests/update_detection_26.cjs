@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const fs = require('fs');
 const path = require('path');
-const { supabase } = require('./config/supabase');
+const { supabase } = require('../config/supabase');
 
 async function updateDetection26() {
     console.log('🔄 Updating Detection ID 26 with weapon_detection.jpg');

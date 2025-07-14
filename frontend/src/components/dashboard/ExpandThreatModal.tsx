@@ -12,7 +12,7 @@ import {
     HStack,
     Text,
     Badge,
-
+    Checkbox,
     Grid,
     Box,
     Spinner,
@@ -34,6 +34,7 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
     const [frameData, setFrameData] = useState<string | null>(null);
     const [frameLoading, setFrameLoading] = useState(false);
     const [frameError, setFrameError] = useState<string | null>(null);
+    const [isAcknowledged, setIsAcknowledged] = useState(false);
     const toast = useToast();
 
     // Add console log for debugging
@@ -369,31 +370,45 @@ const ExpandThreatModal: React.FC<ExpandThreatModalProps> = ({ isOpen, onClose, 
                             </Box>
 
                             {/* Action Buttons */}
-                            <HStack spacing={4}>
-                                <Button
-                                    colorScheme="orange"
-                                    onClick={fetchFrameData}
-                                    isLoading={frameLoading}
-                                    flex={1}
-                                >
-                                    🔄 Refresh Frame
-                                </Button>
-                                <Button
+                            <VStack spacing={4}>
+                                {/* Acknowledge Checkbox */}
+                                <Checkbox
+                                    isChecked={isAcknowledged}
+                                    onChange={(e) => setIsAcknowledged(e.target.checked)}
                                     colorScheme="green"
-                                    onClick={() => {
-                                        toast({
-                                            title: "Alert Acknowledged",
-                                            description: "Threat acknowledged by security personnel",
-                                            status: "info",
-                                            duration: 3000,
-                                            isClosable: true,
-                                        });
-                                    }}
-                                    flex={1}
+                                    size="lg"
                                 >
-                                    ✅ Acknowledge
-                                </Button>
-                            </HStack>
+                                    <Text fontWeight="bold">Threat Acknowledged by Security Personnel</Text>
+                                </Checkbox>
+
+                                <HStack spacing={4} width="100%">
+                                    <Button
+                                        colorScheme="orange"
+                                        onClick={fetchFrameData}
+                                        isLoading={frameLoading}
+                                        flex={1}
+                                    >
+                                        🔄 Refresh Frame
+                                    </Button>
+                                    <Button
+                                        colorScheme="green"
+                                        onClick={() => {
+                                            setIsAcknowledged(true);
+                                            toast({
+                                                title: "Alert Acknowledged",
+                                                description: "Threat acknowledged by security personnel",
+                                                status: "success",
+                                                duration: 3000,
+                                                isClosable: true,
+                                            });
+                                        }}
+                                        flex={1}
+                                        isDisabled={isAcknowledged}
+                                    >
+                                        {isAcknowledged ? '✅ Acknowledged' : '✅ Acknowledge'}
+                                    </Button>
+                                </HStack>
+                            </VStack>
                         </VStack>
                     </ModalBody>
 
