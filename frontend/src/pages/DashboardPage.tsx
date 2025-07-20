@@ -22,6 +22,17 @@ const DashboardPage: React.FC = () => {
     const { isOpen: isMetricsOpen, onOpen: onMetricsOpen, onClose: onMetricsClose } = useDisclosure();
     const { isOpen: isExpandOpen, onOpen: onExpandOpen, onClose: onExpandClose } = useDisclosure();
 
+    // Helper function to get current time in Israel timezone
+    const getCurrentIsraelTime = () => {
+        return new Date().toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' });
+    };
+
+    // Helper function to convert UTC timestamp to Israel time
+    const convertUTCToIsraelTime = (utcTimestamp: string) => {
+        const date = new Date(utcTimestamp);
+        return date.toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' });
+    };
+
     // Theme-aware colors (using actual CSS color values for inline styles)
     const cardBg = useColorModeValue('#ffffff', '#2D3748');
     const cardBorder = useColorModeValue('#e0e0e0', '#4A5568');
@@ -49,14 +60,35 @@ const DashboardPage: React.FC = () => {
             setDetections(allDetections.data.data);
             setThreats(currentThreats.data.active_weapon_threats);
 
-            // Fix timezone issue: use UTC timestamps consistently
+            // Calculate last hour detections with proper timezone handling for Israel (GMT+3)
             const now = new Date();
             const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+            console.log(`=== TIMEZONE DEBUG INFO ===`);
+            console.log(`Current time (local): ${now.toLocaleString()}`);
+            console.log(`Current time (Israel): ${getCurrentIsraelTime()}`);
+            console.log(`One hour ago (local): ${oneHourAgo.toLocaleString()}`);
+            console.log(`One hour ago (Israel): ${new Date(oneHourAgo.getTime()).toLocaleString('en-US', { timeZone: 'Asia/Jerusalem' })}`);
+
             const recentDetections = allDetections.data.data.filter(d => {
-                // Parse detection timestamp as UTC to handle GMT+3 offset properly
+                // Backend sends UTC timestamps (ISO format)
                 const detectionTime = new Date(d.timestamp);
-                return detectionTime > oneHourAgo;
+
+                // JavaScript automatically converts UTC to local timezone when parsing
+                // So detectionTime is already in the user's local timezone
+
+                const isWithinLastHour = detectionTime > oneHourAgo;
+
+                console.log(`Detection ${d.detection_id || d.id}:`);
+                console.log(`  Original UTC timestamp: ${d.timestamp}`);
+                console.log(`  Parsed as local time: ${detectionTime.toLocaleString()}`);
+                console.log(`  Converted to Israel time: ${convertUTCToIsraelTime(d.timestamp)}`);
+                console.log(`  Is within last hour: ${isWithinLastHour}`);
+
+                return isWithinLastHour;
             });
+
+            console.log(`=== END TIMEZONE DEBUG ===`);
 
             setStats({
                 total: allDetections.data.total,
