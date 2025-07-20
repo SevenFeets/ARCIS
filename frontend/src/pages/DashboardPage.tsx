@@ -130,6 +130,62 @@ const DashboardPage: React.FC = () => {
         onExpandOpen();
     };
 
+    // Handler for deleting individual detection
+    const handleDeleteDetection = async (detectionId: number, detectionType: string = 'detection') => {
+        const confirmed = window.confirm(
+            `⚠️ WARNING: This action cannot be undone!\n\n` +
+            `Are you sure you want to delete this ${detectionType}?\n\n` +
+            `Detection ID: ${detectionId}\n` +
+            `This will permanently remove this detection record.\n\n` +
+            `Click OK to proceed or Cancel to abort.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            console.log(`Deleting ${detectionType} with ID: ${detectionId}`);
+
+            const response = await detectionsAPI.delete(detectionId);
+
+            if (response.data.success) {
+                console.log('Successfully deleted detection:', response.data);
+
+                // Remove from local state
+                setDetections(prev => prev.filter(d => (d.detection_id || d.id) !== detectionId));
+                setThreats(prev => prev.filter(t => (t.detection_id || t.id) !== detectionId));
+
+                // Update stats
+                setStats(prev => ({
+                    ...prev,
+                    total: Math.max(0, prev.total - 1),
+                    threats: Math.max(0, prev.threats - 1),
+                    lastHour: Math.max(0, prev.lastHour - 1)
+                }));
+
+                toast({
+                    title: 'Success',
+                    description: `Successfully deleted ${detectionType} with ID ${detectionId}`,
+                    status: 'success',
+                    duration: 3000,
+                    isClosable: true,
+                });
+            } else {
+                throw new Error(response.data.message || 'Failed to delete detection');
+            }
+        } catch (error) {
+            console.error('Error deleting detection:', error);
+            toast({
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'Failed to delete detection',
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+            });
+        }
+    };
+
     // Handler for deleting all detections
     const handleDeleteAllDetections = async () => {
         const totalDetections = detections.length + threats.length;
@@ -416,6 +472,24 @@ const DashboardPage: React.FC = () => {
                                 <div style={{ color: textColor }}>
                                     ⚠️ <strong>Threat Level:</strong> {detection.threat_level}
                                 </div>
+
+                                {/* Action Buttons */}
+                                <div style={{ marginTop: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                    <button
+                                        onClick={() => handleDeleteDetection(detection.detection_id || detection.id, 'detection')}
+                                        style={{
+                                            padding: '8px 16px',
+                                            backgroundColor: '#dc3545',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '5px',
+                                            cursor: 'pointer',
+                                            fontSize: '14px'
+                                        }}
+                                    >
+                                        🗑️ Delete Detection
+                                    </button>
+                                </div>
                             </div>
                         ))}
                         {detections.length > 10 && (
@@ -617,6 +691,20 @@ const DashboardPage: React.FC = () => {
                                             }}
                                         >
                                             🔍 Expand Threat
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteDetection(threatId, 'threat')}
+                                            style={{
+                                                padding: '8px 16px',
+                                                backgroundColor: '#dc3545',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '5px',
+                                                cursor: 'pointer',
+                                                fontSize: '14px'
+                                            }}
+                                        >
+                                            🗑️ Delete Threat
                                         </button>
                                     </div>
                                 </div>
