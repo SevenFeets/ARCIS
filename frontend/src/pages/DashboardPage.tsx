@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Container, useToast, useColorModeValue, useDisclosure } from '@chakra-ui/react';
-import { detectionsAPI, Detection, ManualDetection } from '../api/detections';
+import { detectionsAPI, Detection } from '../api/detections';
 import SystemMetricsModal from '../components/dashboard/SystemMetricsModal';
 import ExpandThreatModal from '../components/dashboard/ExpandThreatModal';
 
 
 const DashboardPage: React.FC = () => {
     const [detections, setDetections] = useState<Detection[]>([]);
-    const [manualDetections, setManualDetections] = useState<ManualDetection[]>([]);
     const [threats, setThreats] = useState<Detection[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'threats' | 'recent' | 'analysis' | 'manual' | 'statistics'>('threats');
+    const [activeTab, setActiveTab] = useState<'threats' | 'recent' | 'statistics'>('threats');
     const [stats, setStats] = useState({
         total: 0,
         threats: 0,
-        manual: 0,
         lastHour: 0
     });
     const [selectedThreatForMetrics, setSelectedThreatForMetrics] = useState<number | null>(null);
@@ -43,14 +41,12 @@ const DashboardPage: React.FC = () => {
             const testResult = await detectionsAPI.testConnection();
             console.log('API Test Result:', testResult.data);
 
-            const [allDetections, manualEntries, currentThreats] = await Promise.all([
+            const [allDetections, currentThreats] = await Promise.all([
                 detectionsAPI.getAll(),
-                detectionsAPI.getManual(),
                 detectionsAPI.getThreats()
             ]);
 
             setDetections(allDetections.data.data);
-            setManualDetections(manualEntries.data.data);
             setThreats(currentThreats.data.active_weapon_threats);
 
             // Fix timezone issue: use UTC timestamps consistently
@@ -65,7 +61,6 @@ const DashboardPage: React.FC = () => {
             setStats({
                 total: allDetections.data.total,
                 threats: currentThreats.data.threat_count,
-                manual: manualEntries.data.count,
                 lastHour: recentDetections.length
             });
 
@@ -193,18 +188,6 @@ const DashboardPage: React.FC = () => {
 
                 <div style={{ border: `2px solid ${cardBorder}`, backgroundColor: cardBg, padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
                     <div style={{ fontSize: '14px', fontWeight: 'bold', color: textColor, marginBottom: '8px' }}>
-                        Manual Entries
-                    </div>
-                    <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#9c27b0', marginBottom: '5px' }}>
-                        {stats.manual}
-                    </div>
-                    <div style={{ fontSize: '12px', color: textColor, opacity: 0.7 }}>
-                        👮 Officer reports
-                    </div>
-                </div>
-
-                <div style={{ border: `2px solid ${cardBorder}`, backgroundColor: cardBg, padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: textColor, marginBottom: '8px' }}>
                         Last Hour
                     </div>
                     <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#4caf50', marginBottom: '5px' }}>
@@ -250,20 +233,6 @@ const DashboardPage: React.FC = () => {
                     }}
                 >
                     🔍 High Priority Threats
-                </button>
-                <button
-                    onClick={() => setActiveTab('manual')}
-                    style={{
-                        padding: '10px 15px',
-                        backgroundColor: activeTab === 'manual' ? '#9c27b0' : buttonBg,
-                        color: activeTab === 'manual' ? 'white' : textColor,
-                        border: `1px solid ${activeTab === 'manual' ? '#9c27b0' : buttonBorder}`,
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        fontWeight: activeTab === 'manual' ? 'bold' : 'normal'
-                    }}
-                >
-                    📝 Manual Entries
                 </button>
                 <button
                     onClick={() => setActiveTab('statistics')}
@@ -337,68 +306,6 @@ const DashboardPage: React.FC = () => {
                                 ... and {detections.length - 10} more detections
                             </div>
                         )}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-
-    // Render manual entries
-    const renderManualEntries = () => (
-        <div key="manual-entries-section">
-            <h3 style={{ fontSize: '20px', marginBottom: '15px', color: textColor }}>
-                📝 Manual Detection Entries ({manualDetections.length})
-            </h3>
-            <div style={{
-                padding: '20px',
-                backgroundColor: sectionBg,
-                borderRadius: '8px',
-                border: `1px solid ${cardBorder}`
-            }}>
-                {manualDetections.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#666', fontSize: '18px' }}>
-                        📋 No manual entries found
-                    </div>
-                ) : (
-                    <div>
-                        {manualDetections.map((entry, index) => (
-                            <div
-                                key={`manual-${entry.id || index}`}
-                                style={{
-                                    border: `1px solid #9c27b0`,
-                                    backgroundColor: cardBg,
-                                    margin: '10px 0',
-                                    padding: '15px',
-                                    borderRadius: '8px'
-                                }}
-                            >
-                                <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '10px', color: '#9c27b0' }}>
-                                    👮 {entry.weapon_type} - Manual Entry
-                                </div>
-                                <div style={{ marginBottom: '5px', color: textColor }}>
-                                    📍 <strong>Location:</strong> {entry.location}
-                                </div>
-                                <div style={{ marginBottom: '5px', color: textColor }}>
-                                    👮 <strong>Officer:</strong> {entry.officer_name}
-                                </div>
-                                <div style={{ marginBottom: '5px', color: textColor }}>
-                                    🕒 <strong>Time:</strong> {new Date(entry.timestamp).toLocaleString()}
-                                </div>
-                                <div style={{ marginBottom: '5px', color: textColor }}>
-                                    🎯 <strong>Confidence:</strong> {entry.confidence}%
-                                </div>
-                                {entry.description && (
-                                    <div style={{ marginTop: '10px', color: textColor }}>
-                                        📄 <strong>Description:</strong> {entry.description}
-                                    </div>
-                                )}
-                                {entry.notes && (
-                                    <div style={{ marginTop: '5px', color: textColor }}>
-                                        📝 <strong>Notes:</strong> {entry.notes}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
                     </div>
                 )}
             </div>
@@ -480,12 +387,6 @@ const DashboardPage: React.FC = () => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span>Active Threats:</span>
                                     <span style={{ fontWeight: 'bold', color: '#dc3545' }}>{stats.threats}</span>
-                                </div>
-                            </div>
-                            <div style={{ marginBottom: '8px', color: textColor }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span>Manual Entries:</span>
-                                    <span style={{ fontWeight: 'bold', color: '#9c27b0' }}>{stats.manual}</span>
                                 </div>
                             </div>
                             <div style={{ marginBottom: '8px', color: textColor }}>
@@ -617,8 +518,6 @@ const DashboardPage: React.FC = () => {
                 return renderRecentDetections();
             case 'threats':
                 return renderThreatsList();
-            case 'manual':
-                return renderManualEntries();
             case 'statistics':
                 return renderStatistics();
             default:
