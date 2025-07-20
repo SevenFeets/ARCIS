@@ -1588,38 +1588,116 @@ router.delete('/all', async (req, res) => {
     try {
         console.log('DELETE ALL request for all detections');
 
-        // First get count of existing detections
-        const countQuery = 'SELECT COUNT(*) as total FROM arcis.detections';
-        const countResult = await dbUtils.query(countQuery);
-        const totalDetections = parseInt(countResult.rows[0].total);
+        // Use a transaction to ensure all related records are deleted
+        const result = await dbUtils.transaction(async (client) => {
+            // Get counts of existing records
+            const detectionsCountQuery = 'SELECT COUNT(*) as total FROM arcis.detections';
+            const alertsCountQuery = 'SELECT COUNT(*) as total FROM arcis.alerts';
+            const weaponDetectionsCountQuery = 'SELECT COUNT(*) as total FROM arcis.weapon_detections';
+            const annotationsCountQuery = 'SELECT COUNT(*) as total FROM arcis.detection_annotations';
 
-        if (totalDetections === 0) {
+            const [detectionsCount, alertsCount, weaponDetectionsCount, annotationsCount] = await Promise.all([
+                client.query(detectionsCountQuery),
+                client.query(alertsCountQuery),
+                client.query(weaponDetectionsCountQuery),
+                client.query(annotationsCountQuery)
+            ]);
+
+            const totalDetections = parseInt(detectionsCount.rows[0].total);
+            const totalAlerts = parseInt(alertsCount.rows[0].total);
+            const totalWeaponDetections = parseInt(weaponDetectionsCount.rows[0].total);
+            const totalAnnotations = parseInt(annotationsCount.rows[0].total);
+
+            console.log(`Found ${totalDetections} detections, ${totalAlerts} alerts, ${totalWeaponDetections} weapon_detections, ${totalAnnotations} annotations to delete`);
+
+            if (totalDetections === 0 && totalAlerts === 0 && totalWeaponDetections === 0 && totalAnnotations === 0) {
+                return {
+                    success: false,
+                    error: 'No detection records found to delete',
+                    code: 'NO_DETECTIONS_FOUND',
+                    counts: { detections: 0, alerts: 0, weapon_detections: 0, annotations: 0 }
+                };
+            }
+
+            // Delete in correct order to avoid foreign key constraint issues
+            // Step 1: Delete alerts first (they reference detections)
+            if (totalAlerts > 0) {
+                console.log('Deleting all alerts first...');
+                const alertsDeleteQuery = 'DELETE FROM arcis.alerts';
+                const alertsResult = await client.query(alertsDeleteQuery);
+                console.log(`Deleted ${alertsResult.rowCount} alerts`);
+            }
+
+            // Step 2: Delete weapon_detections (they reference detections)
+            if (totalWeaponDetections > 0) {
+                console.log('Deleting all weapon_detections...');
+                const weaponDetectionsDeleteQuery = 'DELETE FROM arcis.weapon_detections';
+                const weaponDetectionsResult = await client.query(weaponDetectionsDeleteQuery);
+                console.log(`Deleted ${weaponDetectionsResult.rowCount} weapon_detections`);
+            }
+
+            // Step 3: Delete detection_annotations (they reference detections)
+            if (totalAnnotations > 0) {
+                console.log('Deleting all detection_annotations...');
+                const annotationsDeleteQuery = 'DELETE FROM arcis.detection_annotations';
+                const annotationsResult = await client.query(annotationsDeleteQuery);
+                console.log(`Deleted ${annotationsResult.rowCount} detection_annotations`);
+            }
+
+            // Step 4: Finally delete all detections
+            if (totalDetections > 0) {
+                console.log('Deleting all detections...');
+                const detectionsDeleteQuery = 'DELETE FROM arcis.detections RETURNING detection_id, object_type, threat_level';
+                const detectionsResult = await client.query(detectionsDeleteQuery);
+                console.log(`Deleted ${detectionsResult.rowCount} detections`);
+
+                return {
+                    success: true,
+                    deleted_count: detectionsResult.rowCount,
+                    deleted_detections: detectionsResult.rows.map(detection => ({
+                        id: detection.detection_id,
+                        weapon_type: detection.object_type,
+                        threat_level: detection.threat_level
+                    })),
+                    counts: {
+                        detections: totalDetections,
+                        alerts: totalAlerts,
+                        weapon_detections: totalWeaponDetections,
+                        annotations: totalAnnotations
+                    }
+                };
+            }
+
+            return {
+                success: true,
+                deleted_count: 0,
+                deleted_detections: [],
+                counts: {
+                    detections: 0,
+                    alerts: totalAlerts,
+                    weapon_detections: totalWeaponDetections,
+                    annotations: totalAnnotations
+                }
+            };
+        });
+
+        if (!result.success) {
             return res.status(404).json({
                 success: false,
-                error: 'No detection records found to delete',
-                code: 'NO_DETECTIONS_FOUND',
-                total_detections: 0
+                error: result.error,
+                code: result.code,
+                counts: result.counts
             });
         }
 
-        console.log(`Found ${totalDetections} detections to delete`);
-
-        // Delete all detection records
-        const deleteQuery = 'DELETE FROM arcis.detections RETURNING detection_id, object_type, threat_level';
-        const deleteResult = await dbUtils.query(deleteQuery);
-
-        const deletedDetections = deleteResult.rows;
-        console.log(`Successfully deleted ${deletedDetections.length} detections`);
+        console.log(`Successfully deleted all detection records and related data`);
 
         res.json({
             success: true,
-            message: `Successfully deleted all ${deletedDetections.length} detection records`,
-            deleted_count: deletedDetections.length,
-            deleted_detections: deletedDetections.map(detection => ({
-                id: detection.detection_id,
-                weapon_type: detection.object_type,
-                threat_level: detection.threat_level
-            })),
+            message: `Successfully deleted all detection records and related data`,
+            deleted_count: result.deleted_count,
+            deleted_detections: result.deleted_detections,
+            deleted_counts: result.counts,
             deleted_at: new Date().toISOString()
         });
 
