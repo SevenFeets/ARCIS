@@ -137,6 +137,19 @@ export const detectionsAPI = {
         };
     }>(`/detections/${id}`),
 
+    // Delete all detections
+    deleteAll: () => api.delete<{
+        success: boolean;
+        message: string;
+        deleted_count: number;
+        deleted_detections: Array<{
+            id: number;
+            weapon_type: string;
+            threat_level: number;
+        }>;
+        deleted_at: string;
+    }>('/detections/all'),
+
     // Test database connection
     testConnection: () => api.get<{
         success: boolean;

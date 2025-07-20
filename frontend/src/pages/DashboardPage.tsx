@@ -98,6 +98,76 @@ const DashboardPage: React.FC = () => {
         onExpandOpen();
     };
 
+    // Handler for deleting all detections
+    const handleDeleteAllDetections = async () => {
+        const totalDetections = detections.length + threats.length;
+
+        if (totalDetections === 0) {
+            toast({
+                title: 'No Detections',
+                description: 'There are no detections to delete',
+                status: 'info',
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
+
+        const confirmed = window.confirm(
+            `⚠️ WARNING: This action cannot be undone!\n\n` +
+            `Are you sure you want to delete ALL ${totalDetections} detection records?\n\n` +
+            `This will permanently remove:\n` +
+            `• ${detections.length} total detections\n` +
+            `• ${threats.length} active threats\n\n` +
+            `Click OK to proceed or Cancel to abort.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setLoading(true);
+            console.log('Deleting all detections...');
+
+            const response = await detectionsAPI.deleteAll();
+
+            if (response.data.success) {
+                console.log('Successfully deleted all detections:', response.data);
+
+                // Clear local state
+                setDetections([]);
+                setThreats([]);
+                setStats({
+                    total: 0,
+                    threats: 0,
+                    lastHour: 0
+                });
+
+                toast({
+                    title: 'Success',
+                    description: `Successfully deleted ${response.data.deleted_count} detection records`,
+                    status: 'success',
+                    duration: 5000,
+                    isClosable: true,
+                });
+            } else {
+                throw new Error(response.data.message || 'Failed to delete detections');
+            }
+        } catch (error) {
+            console.error('Error deleting all detections:', error);
+            toast({
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'Failed to delete all detections',
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Loading state
     if (loading) {
         return (
@@ -116,19 +186,34 @@ const DashboardPage: React.FC = () => {
             <p style={{ fontSize: '16px', color: '#666', marginBottom: '15px' }}>
                 Real-time monitoring and threat assessment dashboard
             </p>
-            <button
-                onClick={fetchDashboardData}
-                style={{
-                    padding: '10px 20px',
-                    backgroundColor: '#007bff',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer'
-                }}
-            >
-                🕒 Refresh Dashboard
-            </button>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                    onClick={fetchDashboardData}
+                    style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    🕒 Refresh Dashboard
+                </button>
+                <button
+                    onClick={handleDeleteAllDetections}
+                    style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    🗑️ Clear All Detections
+                </button>
+            </div>
         </div>
     );
 

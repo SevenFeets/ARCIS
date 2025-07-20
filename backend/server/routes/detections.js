@@ -1561,6 +1561,57 @@ router.delete('/:id', validateId, async (req, res) => {
     }
 });
 
+// DELETE /api/detections/all - Delete all detection records
+router.delete('/all', async (req, res) => {
+    try {
+        console.log('DELETE ALL request for all detections');
+
+        // First get count of existing detections
+        const countQuery = 'SELECT COUNT(*) as total FROM arcis.detections';
+        const countResult = await dbUtils.query(countQuery);
+        const totalDetections = parseInt(countResult.rows[0].total);
+
+        if (totalDetections === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No detection records found to delete',
+                code: 'NO_DETECTIONS_FOUND',
+                total_detections: 0
+            });
+        }
+
+        console.log(`Found ${totalDetections} detections to delete`);
+
+        // Delete all detection records
+        const deleteQuery = 'DELETE FROM arcis.detections RETURNING detection_id, object_type, threat_level';
+        const deleteResult = await dbUtils.query(deleteQuery);
+
+        const deletedDetections = deleteResult.rows;
+        console.log(`Successfully deleted ${deletedDetections.length} detections`);
+
+        res.json({
+            success: true,
+            message: `Successfully deleted all ${deletedDetections.length} detection records`,
+            deleted_count: deletedDetections.length,
+            deleted_detections: deletedDetections.map(detection => ({
+                id: detection.detection_id,
+                weapon_type: detection.object_type,
+                threat_level: detection.threat_level
+            })),
+            deleted_at: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('Error deleting all detections:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete all detection records',
+            code: 'DELETE_ALL_DETECTIONS_ERROR',
+            details: error.message
+        });
+    }
+});
+
 // PUT /api/detections/:id/comment - Add comment to detection
 router.put('/:id/comment', async (req, res) => {
     try {
