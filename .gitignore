@@ -51,4 +51,13 @@ final_tests_fix_upload_image/
 
 coral/
 pi-jetson/
+pi-jetson/POSTMAN_TESTING_GUIDE.md
 
+Jetson_Weapon_Detection.py
+PI4_SMART_DETECTION_SETUP.md
+Pi4_Jetson_send_frames.py
+jetson_config.py
+send_frames.py
+send_frames2.py
+test_coral_tpu_simple.py
+Pi4_send_frames.py
