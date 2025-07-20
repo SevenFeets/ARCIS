@@ -1512,11 +1512,17 @@ router.delete('/:id', validateId, async (req, res) => {
 
         console.log(`DELETE request for detection ID: ${detectionId}`);
 
-        // First check if the detection exists
-        const checkQuery = 'SELECT detection_id, object_type, threat_level FROM arcis.detections WHERE detection_id = $1';
-        const checkResult = await dbUtils.query(checkQuery, [detectionId]);
+        // Use Supabase for consistency with other endpoints
+        const { supabase } = require('../config/supabase');
 
-        if (checkResult.rows.length === 0) {
+        // First check if the detection exists
+        const { data: detection, error: checkError } = await supabase
+            .from('detections')
+            .select('detection_id, object_type, threat_level')
+            .eq('detection_id', detectionId)
+            .single();
+
+        if (checkError || !detection) {
             return res.status(404).json({
                 success: false,
                 error: 'Detection record not found',
@@ -1525,41 +1531,59 @@ router.delete('/:id', validateId, async (req, res) => {
             });
         }
 
-        const detection = checkResult.rows[0];
         console.log(`Found detection to delete:`, detection);
 
-        // Use a transaction to ensure all related records are deleted
-        await dbUtils.transaction(async (client) => {
-            // Delete related records first (due to foreign key constraints)
+        // Delete related records first (due to foreign key constraints)
+        console.log(`Starting deletion of detection ${detectionId}`);
 
-            // Delete weapon_detections records
-            const deleteWeaponDetectionsQuery = 'DELETE FROM arcis.weapon_detections WHERE detection_id = $1';
-            const weaponResult = await client.query(deleteWeaponDetectionsQuery, [detectionId]);
-            console.log(`Deleted ${weaponResult.rowCount} weapon_detections records`);
+        // Delete weapon_detections records
+        const { error: weaponError } = await supabase
+            .from('weapon_detections')
+            .delete()
+            .eq('detection_id', detectionId);
 
-            // Delete alerts records
-            const deleteAlertsQuery = 'DELETE FROM arcis.alerts WHERE detection_id = $1';
-            const alertsResult = await client.query(deleteAlertsQuery, [detectionId]);
-            console.log(`Deleted ${alertsResult.rowCount} alerts records`);
+        if (weaponError) {
+            console.log(`No weapon_detections records found for detection ${detectionId}:`, weaponError.message);
+        } else {
+            console.log(`Deleted weapon_detections records for detection ${detectionId}`);
+        }
 
-            // Delete detection_annotations records
-            const deleteAnnotationsQuery = 'DELETE FROM arcis.detection_annotations WHERE detection_id = $1';
-            const annotationsResult = await client.query(deleteAnnotationsQuery, [detectionId]);
-            console.log(`Deleted ${annotationsResult.rowCount} detection_annotations records`);
+        // Delete alerts records
+        const { error: alertsError } = await supabase
+            .from('alerts')
+            .delete()
+            .eq('detection_id', detectionId);
 
-            // Finally delete the detection record
-            const deleteQuery = 'DELETE FROM arcis.detections WHERE detection_id = $1 RETURNING *';
-            const deleteResult = await client.query(deleteQuery, [detectionId]);
+        if (alertsError) {
+            console.log(`No alerts records found for detection ${detectionId}:`, alertsError.message);
+        } else {
+            console.log(`Deleted alerts records for detection ${detectionId}`);
+        }
 
-            if (deleteResult.rows.length === 0) {
-                throw new Error('Failed to delete detection record');
-            }
+        // Delete detection_annotations records
+        const { error: annotationsError } = await supabase
+            .from('detection_annotations')
+            .delete()
+            .eq('detection_id', detectionId);
 
-            const deletedDetection = deleteResult.rows[0];
-            console.log(`Successfully deleted detection:`, deletedDetection);
+        if (annotationsError) {
+            console.log(`No detection_annotations records found for detection ${detectionId}:`, annotationsError.message);
+        } else {
+            console.log(`Deleted detection_annotations records for detection ${detectionId}`);
+        }
 
-            return deletedDetection;
-        });
+        // Finally delete the detection record
+        console.log(`Deleting main detection record ${detectionId}`);
+        const { error: deleteError } = await supabase
+            .from('detections')
+            .delete()
+            .eq('detection_id', detectionId);
+
+        if (deleteError) {
+            throw new Error(`Failed to delete detection record ${detectionId}: ${deleteError.message}`);
+        }
+
+        console.log(`Successfully deleted detection ${detectionId}`);
 
         res.json({
             success: true,
@@ -1574,11 +1598,20 @@ router.delete('/:id', validateId, async (req, res) => {
 
     } catch (error) {
         console.error('Error deleting detection:', error);
+        console.error('Error stack:', error.stack);
+        console.error('Error details:', {
+            detectionId: req.params.id,
+            errorName: error.name,
+            errorMessage: error.message,
+            errorCode: error.code
+        });
+
         res.status(500).json({
             success: false,
             error: 'Failed to delete detection record',
             code: 'DELETE_DETECTION_ERROR',
-            details: error.message
+            details: error.message,
+            detection_id: req.params.id
         });
     }
 });
@@ -1588,106 +1621,84 @@ router.delete('/all', async (req, res) => {
     try {
         console.log('DELETE ALL request for all detections');
 
-        // Use a transaction to ensure all related records are deleted
-        const result = await dbUtils.transaction(async (client) => {
-            // Get counts of existing records
-            const detectionsCountQuery = 'SELECT COUNT(*) as total FROM arcis.detections';
-            const alertsCountQuery = 'SELECT COUNT(*) as total FROM arcis.alerts';
-            const weaponDetectionsCountQuery = 'SELECT COUNT(*) as total FROM arcis.weapon_detections';
-            const annotationsCountQuery = 'SELECT COUNT(*) as total FROM arcis.detection_annotations';
+        // Use Supabase for consistency with other endpoints
+        const { supabase } = require('../config/supabase');
 
-            const [detectionsCount, alertsCount, weaponDetectionsCount, annotationsCount] = await Promise.all([
-                client.query(detectionsCountQuery),
-                client.query(alertsCountQuery),
-                client.query(weaponDetectionsCountQuery),
-                client.query(annotationsCountQuery)
-            ]);
+        // Get counts of existing records
+        const [detectionsCount, alertsCount, weaponDetectionsCount, annotationsCount] = await Promise.all([
+            supabase.from('detections').select('detection_id', { count: 'exact' }),
+            supabase.from('alerts').select('alert_id', { count: 'exact' }),
+            supabase.from('weapon_detections').select('weapon_detection_id', { count: 'exact' }),
+            supabase.from('detection_annotations').select('annotation_id', { count: 'exact' })
+        ]);
 
-            const totalDetections = parseInt(detectionsCount.rows[0].total);
-            const totalAlerts = parseInt(alertsCount.rows[0].total);
-            const totalWeaponDetections = parseInt(weaponDetectionsCount.rows[0].total);
-            const totalAnnotations = parseInt(annotationsCount.rows[0].total);
+        const totalDetections = detectionsCount.count || 0;
+        const totalAlerts = alertsCount.count || 0;
+        const totalWeaponDetections = weaponDetectionsCount.count || 0;
+        const totalAnnotations = annotationsCount.count || 0;
 
-            console.log(`Found ${totalDetections} detections, ${totalAlerts} alerts, ${totalWeaponDetections} weapon_detections, ${totalAnnotations} annotations to delete`);
+        console.log(`Found ${totalDetections} detections, ${totalAlerts} alerts, ${totalWeaponDetections} weapon_detections, ${totalAnnotations} annotations to delete`);
 
-            if (totalDetections === 0 && totalAlerts === 0 && totalWeaponDetections === 0 && totalAnnotations === 0) {
-                return {
-                    success: false,
-                    error: 'No detection records found to delete',
-                    code: 'NO_DETECTIONS_FOUND',
-                    counts: { detections: 0, alerts: 0, weapon_detections: 0, annotations: 0 }
-                };
-            }
-
-            // Delete in correct order to avoid foreign key constraint issues
-            // Step 1: Delete alerts first (they reference detections)
-            if (totalAlerts > 0) {
-                console.log('Deleting all alerts first...');
-                const alertsDeleteQuery = 'DELETE FROM arcis.alerts';
-                const alertsResult = await client.query(alertsDeleteQuery);
-                console.log(`Deleted ${alertsResult.rowCount} alerts`);
-            }
-
-            // Step 2: Delete weapon_detections (they reference detections)
-            if (totalWeaponDetections > 0) {
-                console.log('Deleting all weapon_detections...');
-                const weaponDetectionsDeleteQuery = 'DELETE FROM arcis.weapon_detections';
-                const weaponDetectionsResult = await client.query(weaponDetectionsDeleteQuery);
-                console.log(`Deleted ${weaponDetectionsResult.rowCount} weapon_detections`);
-            }
-
-            // Step 3: Delete detection_annotations (they reference detections)
-            if (totalAnnotations > 0) {
-                console.log('Deleting all detection_annotations...');
-                const annotationsDeleteQuery = 'DELETE FROM arcis.detection_annotations';
-                const annotationsResult = await client.query(annotationsDeleteQuery);
-                console.log(`Deleted ${annotationsResult.rowCount} detection_annotations`);
-            }
-
-            // Step 4: Finally delete all detections
-            if (totalDetections > 0) {
-                console.log('Deleting all detections...');
-                const detectionsDeleteQuery = 'DELETE FROM arcis.detections RETURNING detection_id, object_type, threat_level';
-                const detectionsResult = await client.query(detectionsDeleteQuery);
-                console.log(`Deleted ${detectionsResult.rowCount} detections`);
-
-                return {
-                    success: true,
-                    deleted_count: detectionsResult.rowCount,
-                    deleted_detections: detectionsResult.rows.map(detection => ({
-                        id: detection.detection_id,
-                        weapon_type: detection.object_type,
-                        threat_level: detection.threat_level
-                    })),
-                    counts: {
-                        detections: totalDetections,
-                        alerts: totalAlerts,
-                        weapon_detections: totalWeaponDetections,
-                        annotations: totalAnnotations
-                    }
-                };
-            }
-
-            return {
-                success: true,
-                deleted_count: 0,
-                deleted_detections: [],
-                counts: {
-                    detections: 0,
-                    alerts: totalAlerts,
-                    weapon_detections: totalWeaponDetections,
-                    annotations: totalAnnotations
-                }
-            };
-        });
-
-        if (!result.success) {
+        if (totalDetections === 0 && totalAlerts === 0 && totalWeaponDetections === 0 && totalAnnotations === 0) {
             return res.status(404).json({
                 success: false,
-                error: result.error,
-                code: result.code,
-                counts: result.counts
+                error: 'No detection records found to delete',
+                code: 'NO_DETECTIONS_FOUND',
+                counts: { detections: 0, alerts: 0, weapon_detections: 0, annotations: 0 }
             });
+        }
+
+        // Delete in correct order to avoid foreign key constraint issues
+        // Step 1: Delete alerts first (they reference detections)
+        if (totalAlerts > 0) {
+            console.log('Deleting all alerts first...');
+            const { error: alertsError } = await supabase.from('alerts').delete().neq('alert_id', 0);
+            if (alertsError) {
+                console.error('Error deleting alerts:', alertsError);
+            } else {
+                console.log(`Deleted ${totalAlerts} alerts`);
+            }
+        }
+
+        // Step 2: Delete weapon_detections (they reference detections)
+        if (totalWeaponDetections > 0) {
+            console.log('Deleting all weapon_detections...');
+            const { error: weaponError } = await supabase.from('weapon_detections').delete().neq('weapon_detection_id', 0);
+            if (weaponError) {
+                console.error('Error deleting weapon_detections:', weaponError);
+            } else {
+                console.log(`Deleted ${totalWeaponDetections} weapon_detections`);
+            }
+        }
+
+        // Step 3: Delete detection_annotations (they reference detections)
+        if (totalAnnotations > 0) {
+            console.log('Deleting all detection_annotations...');
+            const { error: annotationsError } = await supabase.from('detection_annotations').delete().neq('annotation_id', 0);
+            if (annotationsError) {
+                console.error('Error deleting detection_annotations:', annotationsError);
+            } else {
+                console.log(`Deleted ${totalAnnotations} detection_annotations`);
+            }
+        }
+
+        // Step 4: Finally delete all detections
+        let deletedDetections = [];
+        if (totalDetections > 0) {
+            console.log('Deleting all detections...');
+            const { data: deletedData, error: detectionsError } = await supabase
+                .from('detections')
+                .delete()
+                .neq('detection_id', 0)
+                .select('detection_id, object_type, threat_level');
+
+            if (detectionsError) {
+                console.error('Error deleting detections:', detectionsError);
+                throw new Error(`Failed to delete detections: ${detectionsError.message}`);
+            } else {
+                deletedDetections = deletedData || [];
+                console.log(`Deleted ${deletedDetections.length} detections`);
+            }
         }
 
         console.log(`Successfully deleted all detection records and related data`);
@@ -1695,9 +1706,18 @@ router.delete('/all', async (req, res) => {
         res.json({
             success: true,
             message: `Successfully deleted all detection records and related data`,
-            deleted_count: result.deleted_count,
-            deleted_detections: result.deleted_detections,
-            deleted_counts: result.counts,
+            deleted_count: deletedDetections.length,
+            deleted_detections: deletedDetections.map(detection => ({
+                id: detection.detection_id,
+                weapon_type: detection.object_type,
+                threat_level: detection.threat_level
+            })),
+            deleted_counts: {
+                detections: totalDetections,
+                alerts: totalAlerts,
+                weapon_detections: totalWeaponDetections,
+                annotations: totalAnnotations
+            },
             deleted_at: new Date().toISOString()
         });
 
