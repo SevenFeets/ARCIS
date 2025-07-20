@@ -1528,24 +1528,46 @@ router.delete('/:id', validateId, async (req, res) => {
         const detection = checkResult.rows[0];
         console.log(`Found detection to delete:`, detection);
 
-        // Delete the detection record
-        const deleteQuery = 'DELETE FROM arcis.detections WHERE detection_id = $1 RETURNING *';
-        const deleteResult = await dbUtils.query(deleteQuery, [detectionId]);
+        // Use a transaction to ensure all related records are deleted
+        await dbUtils.transaction(async (client) => {
+            // Delete related records first (due to foreign key constraints)
 
-        if (deleteResult.rows.length === 0) {
-            throw new Error('Failed to delete detection record');
-        }
+            // Delete weapon_detections records
+            const deleteWeaponDetectionsQuery = 'DELETE FROM arcis.weapon_detections WHERE detection_id = $1';
+            const weaponResult = await client.query(deleteWeaponDetectionsQuery, [detectionId]);
+            console.log(`Deleted ${weaponResult.rowCount} weapon_detections records`);
 
-        const deletedDetection = deleteResult.rows[0];
-        console.log(`Successfully deleted detection:`, deletedDetection);
+            // Delete alerts records
+            const deleteAlertsQuery = 'DELETE FROM arcis.alerts WHERE detection_id = $1';
+            const alertsResult = await client.query(deleteAlertsQuery, [detectionId]);
+            console.log(`Deleted ${alertsResult.rowCount} alerts records`);
+
+            // Delete detection_annotations records
+            const deleteAnnotationsQuery = 'DELETE FROM arcis.detection_annotations WHERE detection_id = $1';
+            const annotationsResult = await client.query(deleteAnnotationsQuery, [detectionId]);
+            console.log(`Deleted ${annotationsResult.rowCount} detection_annotations records`);
+
+            // Finally delete the detection record
+            const deleteQuery = 'DELETE FROM arcis.detections WHERE detection_id = $1 RETURNING *';
+            const deleteResult = await client.query(deleteQuery, [detectionId]);
+
+            if (deleteResult.rows.length === 0) {
+                throw new Error('Failed to delete detection record');
+            }
+
+            const deletedDetection = deleteResult.rows[0];
+            console.log(`Successfully deleted detection:`, deletedDetection);
+
+            return deletedDetection;
+        });
 
         res.json({
             success: true,
             message: `Detection record ${detectionId} deleted successfully`,
             deleted_detection: {
-                id: deletedDetection.detection_id,
-                weapon_type: deletedDetection.object_type,
-                threat_level: deletedDetection.threat_level,
+                id: detection.detection_id,
+                weapon_type: detection.object_type,
+                threat_level: detection.threat_level,
                 deleted_at: new Date().toISOString()
             }
         });
