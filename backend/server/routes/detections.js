@@ -1648,11 +1648,28 @@ router.delete('/all', async (req, res) => {
             });
         }
 
+        // Get all detection IDs first to use for deletion
+        const { data: allDetections, error: fetchDetectionsError } = await supabase
+            .from('detections')
+            .select('detection_id, object_type, threat_level');
+
+        if (fetchDetectionsError) {
+            console.error('Error fetching detections for deletion:', fetchDetectionsError);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to fetch detections for deletion',
+                details: fetchDetectionsError.message
+            });
+        }
+
+        const detectionIds = allDetections.map(d => d.detection_id);
+        console.log(`Found ${detectionIds.length} detection IDs to delete:`, detectionIds);
+
         // Delete in correct order to avoid foreign key constraint issues
         // Step 1: Delete alerts first (they reference detections)
         if (totalAlerts > 0) {
             console.log('Deleting all alerts first...');
-            const { error: alertsError } = await supabase.from('alerts').delete().neq('alert_id', 0);
+            const { error: alertsError } = await supabase.from('alerts').delete().in('detection_id', detectionIds);
             if (alertsError) {
                 console.error('Error deleting alerts:', alertsError);
             } else {
@@ -1663,7 +1680,7 @@ router.delete('/all', async (req, res) => {
         // Step 2: Delete weapon_detections (they reference detections)
         if (totalWeaponDetections > 0) {
             console.log('Deleting all weapon_detections...');
-            const { error: weaponError } = await supabase.from('weapon_detections').delete().neq('weapon_detection_id', 0);
+            const { error: weaponError } = await supabase.from('weapon_detections').delete().in('detection_id', detectionIds);
             if (weaponError) {
                 console.error('Error deleting weapon_detections:', weaponError);
             } else {
@@ -1674,7 +1691,7 @@ router.delete('/all', async (req, res) => {
         // Step 3: Delete detection_annotations (they reference detections)
         if (totalAnnotations > 0) {
             console.log('Deleting all detection_annotations...');
-            const { error: annotationsError } = await supabase.from('detection_annotations').delete().neq('annotation_id', 0);
+            const { error: annotationsError } = await supabase.from('detection_annotations').delete().in('detection_id', detectionIds);
             if (annotationsError) {
                 console.error('Error deleting detection_annotations:', annotationsError);
             } else {
@@ -1683,22 +1700,17 @@ router.delete('/all', async (req, res) => {
         }
 
         // Step 4: Finally delete all detections
-        let deletedDetections = [];
-        if (totalDetections > 0) {
-            console.log('Deleting all detections...');
-            const { data: deletedData, error: detectionsError } = await supabase
-                .from('detections')
-                .delete()
-                .neq('detection_id', 0)
-                .select('detection_id, object_type, threat_level');
+        console.log('Deleting all detections...');
+        const { error: finalDetectionsError } = await supabase
+            .from('detections')
+            .delete()
+            .in('detection_id', detectionIds);
 
-            if (detectionsError) {
-                console.error('Error deleting detections:', detectionsError);
-                throw new Error(`Failed to delete detections: ${detectionsError.message}`);
-            } else {
-                deletedDetections = deletedData || [];
-                console.log(`Deleted ${deletedDetections.length} detections`);
-            }
+        if (finalDetectionsError) {
+            console.error('Error deleting detections:', finalDetectionsError);
+            throw new Error(`Failed to delete detections: ${finalDetectionsError.message}`);
+        } else {
+            console.log(`Deleted ${detectionIds.length} detections`);
         }
 
         console.log(`Successfully deleted all detection records and related data`);
@@ -1706,8 +1718,8 @@ router.delete('/all', async (req, res) => {
         res.json({
             success: true,
             message: `Successfully deleted all detection records and related data`,
-            deleted_count: deletedDetections.length,
-            deleted_detections: deletedDetections.map(detection => ({
+            deleted_count: detectionIds.length,
+            deleted_detections: allDetections.map(detection => ({
                 id: detection.detection_id,
                 weapon_type: detection.object_type,
                 threat_level: detection.threat_level
