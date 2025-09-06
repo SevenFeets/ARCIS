@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { dbUtils, query, testConnection } = require('../config/db');
+const { dbUtils, query, testConnection } = require('../../config/db');
 
 const app = express();
 const PORT = process.env.TEST_PORT || 3001;

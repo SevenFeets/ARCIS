@@ -1,4 +1,4 @@
-const { testConnection, initializeDatabase, dbUtils, query } = require('../config/db');
+const { testConnection, initializeDatabase, dbUtils, query } = require('../../config/db');
 
 async function runFullARCISTests() {
     console.log('🧪 Starting Full ARCIS Database Tests...\n');

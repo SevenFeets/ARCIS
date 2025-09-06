@@ -1,4 +1,4 @@
-const { testConnection, initializeDatabase, query } = require('../config/db');
+const { testConnection, initializeDatabase, query } = require('../../config/db');
 
 async function initializeOnly() {
     console.log('🚀 Initializing ARCIS Database from Scratch...\n');

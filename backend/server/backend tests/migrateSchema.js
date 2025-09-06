@@ -1,4 +1,4 @@
-const { query, testConnection } = require('../config/db');
+const { query, testConnection } = require('../../config/db');
 
 async function migrateSchema() {
     console.log('🔄 Migrating ARCIS Database Schema to Weapon Detection System...\n');

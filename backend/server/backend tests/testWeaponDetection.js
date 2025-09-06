@@ -1,4 +1,4 @@
-const { testConnection, initializeDatabase, dbUtils, query } = require('../config/db');
+const { testConnection, initializeDatabase, dbUtils, query } = require('../../config/db');
 
 async function runWeaponDetectionTests() {
     console.log('🔫 Starting ARCIS Weapon Detection System Tests...\n');

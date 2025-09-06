@@ -1,4 +1,4 @@
-const { dbUtils } = require('../config/db');
+const { dbUtils } = require('../../config/db');
 
 async function addFrameColumns() {
     try {

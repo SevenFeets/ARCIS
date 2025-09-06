@@ -1,4 +1,4 @@
-const { query } = require('../config/db');
+const { query } = require('../../config/db');
 
 async function checkSchema() {
     console.log('🔍 Checking current database schema...\n');

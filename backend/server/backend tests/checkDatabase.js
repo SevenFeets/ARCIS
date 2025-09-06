@@ -1,4 +1,4 @@
-const { query, testConnection } = require('../config/db');
+const { query, testConnection } = require('../../config/db');
 
 async function checkDatabase() {
     console.log('🔍 Checking ARCIS Weapon Detection Database State...\n');

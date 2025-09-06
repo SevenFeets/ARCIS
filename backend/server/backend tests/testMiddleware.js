@@ -1,7 +1,7 @@
 const express = require('express');
-const arcjetMiddleware = require('../middleware/arcjet');
-const { verifyToken, requireRole, requireClearance } = require('../middleware/auth');
-const { validateUser } = require('../middleware/validations');
+const arcjetMiddleware = require('../../middleware/arcjet');
+const { verifyToken, requireRole, requireClearance } = require('../../middleware/auth');
+const { validateUser } = require('../../middleware/validations');
 
 const app = express();
 app.use(express.json());

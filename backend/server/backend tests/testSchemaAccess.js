@@ -1,4 +1,4 @@
-const { query, testConnection } = require('../config/db');
+const { query, testConnection } = require('../../config/db');
 
 async function testSchemaAccess() {
     console.log('🔍 Testing ARCIS Weapon Detection Schema Access...\n');
