@@ -1,0 +1,49 @@
+{
+    "users": {
+        "testUser": {
+            "email": "test@arcis.com",
+            "password": "testpassword123",
+            "displayName": "Test User"
+        },
+        "adminUser": {
+            "email": "admin@arcis.com",
+            "password": "adminpassword123",
+            "displayName": "Admin User"
+        }
+    },
+    "api": {
+        "baseUrl": "http://localhost:5000/api",
+        "deployedUrl": "https://arcis-production.up.railway.app/api",
+        "apiKey": "test-api-key-123",
+        "timeout": 10000
+    },
+    "testDetection": {
+        "device_id": "cypress-test-device",
+        "timestamp": "2024-12-08T10:30:45Z",
+        "object_type": "weapon",
+        "threat_level": 7,
+        "confidence": 0.85,
+        "bounding_box": {
+            "x": 100,
+            "y": 150,
+            "width": 80,
+            "height": 120
+        },
+        "metadata": {
+            "device_type": "cypress_test",
+            "test_case": "automated_e2e"
+        }
+    },
+    "ui": {
+        "selectors": {
+            "loginButton": "[data-testid='login-button']",
+            "emailInput": "[data-testid='email-input']",
+            "passwordInput": "[data-testid='password-input']",
+            "loginSubmit": "[data-testid='login-submit']",
+            "dashboard": "[data-testid='dashboard']",
+            "detectionsList": "[data-testid='detections-list']",
+            "threatAlerts": "[data-testid='threat-alerts']",
+            "detectionStats": "[data-testid='detection-stats']"
+        }
+    }
+}
