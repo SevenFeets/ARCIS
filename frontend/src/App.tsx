@@ -17,6 +17,7 @@ import QuickApiTest from './components/debug/QuickApiTest'
 import DatabaseTestHook from './components/debug/DatabaseTestHook'
 import DetectionHooksTest from './components/debug/DetectionHooksTest'
 import AuthPage from './pages/AuthPage'
+import ArticlesPage from './pages/ArticlesPage'
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
           <Route path="/project-overview" element={<ProjectOverviewPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/articles" element={<ArticlesPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<HomePage />} />
           <Route path="/auth" element={<AuthPage />} />

@@ -62,17 +62,17 @@ const ContactPage = () => {
                                 <Stack direction="column" gap="4" align="stretch">
                                     <HStack>
                                         <Icon as={FiMail} boxSize={5} />
-                                        <Text>your.email@example.com</Text>
+                                        <Text>be22century@ARCIS-LTD.int</Text>
                                     </HStack>
 
                                     <HStack>
                                         <Icon as={FiPhone} boxSize={5} />
-                                        <Text>+1 (123) 456-7890</Text>
+                                        <Text>+972 (03) 555-0123</Text>
                                     </HStack>
 
                                     <HStack>
                                         <Icon as={FiMapPin} boxSize={5} />
-                                        <Text>123 Main St, City, Country</Text>
+                                        <Text>Ayalon 7 Boulevard, Tel Aviv, Israel</Text>
                                     </HStack>
                                 </Stack>
                             </Stack>
