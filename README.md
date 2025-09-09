@@ -34,4 +34,4 @@ This repository contains only documentation and design artifacts. The implementa
 
 ## Contact
 
-For questions regarding this documentation, please contact [your contact information or team name]. 
+For questions regarding this documentation, please contact us at be22century@gmail.com. 
