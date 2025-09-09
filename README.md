@@ -2,6 +2,9 @@
 
 <div align="center">
 
+## ML part of the project can be found: 
+   [🤖 ARCIS-ML Repository](https://github.com/SevenFeets/ARCIS-ML)
+
 ![ARCIS Logo](frontend/public/ARCIS_logo.jpg)
 
 **AI-Powered Weapon Detection Platform**
