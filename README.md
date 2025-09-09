@@ -10,19 +10,26 @@ This repository contains documentation, requirements specifications, and system 
 - [Requirements.txt](requirements.txt) - Technical dependencies and requirements
 
 ### System Diagrams
-- [Sequence Diagram](ARCIS%20system%20info/ARCIS%20sequence%20diagram.drawio) - System interaction sequences
-- [Class Diagram](ARCIS%20system%20info/arcis-class-diagram.mermaid) - Object-oriented structure
+- [Sequence Diagram](ARCIS%20system%20info/diagrams/ARCIS%20sequence%20diagram.drawio.png) - System interaction sequences
+- [Class Diagram](ARCIS%20system%20info/diagrams/ARCIS%20class%20diagram.drawio.png) - Object-oriented structure
 - [Component Diagram](ARCIS%20system%20info/arcis-component-diagram.mermaid) - System component architecture
-- [Database Diagram](ARCIS%20system%20info/DataBase%20initial%20Diagram.drawio) - Database schema and relationships
-- [High-Level Architecture](ARCIS%20system%20info/high%20level%20architecture%20Diagram_2.drawio) - Overall system architecture
+- [Database Diagram](ARCIS%20system%20info/diagrams/DataBase%20initial%20Diagram.pdf) - Database schema and relationships
+- [High-Level Architecture](ARCIS%20system%20info/diagrams/high%20level%20architecture%20Diagram_2.drawio.png) - Overall system architecture
 
 ### Development Resources
-- [Development Strategy](ARCIS-development%20stategy.docx) - Project development approach and timeline
-- [EagleSight Implementation](Copy_of_ARCIS_eagleSight.ipynb) - Implementation details for the EagleSight component
+- [Development Strategy](ARCIS%20system%20info/system-docs/arcis-development-stages.md) - Project development approach and timeline
+- [Functional Requirements](ARCIS%20system%20info/Functional%20requirements.docx) - all funtional requirements of the project
+- [SSD document](ARCIS%20system%20info/SSD.docx)
 
 ### Project Overview
-- [Project Summary](summary,%20competitors,%20bibliography.docx) - Project overview, competitive analysis, and references
+- [Project Summary](ARCIS%20system%20info/summary%2C%20competitors%2C%20bibliography.docx) - Project overview, competitive analysis, and references
 - [Presentation](Presentation.pdf) - Project presentation slides
+
+### Project final files
+- [Peer Review](PEER%20REIVIEW%20SEMSETER%20B.pdf)
+- [ STD ](STD_Doc_ver1.0.docx)
+- [ STP ](STP%20ver%203.0.docx)
+  
 
 ## About ARCIS
 
