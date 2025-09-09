@@ -4,6 +4,10 @@
 
 ## ML part of the project can be found: 
    [🤖 ARCIS-ML Repository](https://github.com/SevenFeets/ARCIS-ML)
+   [ARCIS-DATA Repository](https://github.com/SevenFeets/ARCIS/tree/ARCIS-data)
+   [ARCIS additional Auth test](https://github.com/SevenFeets/ARCIS/tree/Auth-tests)
+   [ARCIS-project structure](https://github.com/SevenFeets/ARCIS/tree/train_Model_with_MoreClasses)
+
 
 ![ARCIS Logo](frontend/public/ARCIS_logo.jpg)
 
@@ -16,7 +20,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15%2B-blue)](https://postgresql.org/)
 [![License](https://img.shields.io/badge/License-ISC-yellow)](LICENSE)
 
-[🚀 Live Demo](https://arcis-website-kappa.vercel.app/) | [📖 Documentation](All_documentations/) | [🔧 API Docs](backend/server/routes/detection/README.md)
+[🚀 Live Demo](https://arcis-prod.vercel.app/) | [📖 Documentation](All_documentations/) | [🔧 API Docs](backend/server/routes/detection/README.md)
 
 </div>
 
